@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
-import 'package:gen_confi/core/constants/app_colors.dart';
-import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/utils/navigation.dart';
+import 'package:gen_confi/services/onboarding_store.dart';
 import 'package:gen_confi/core/widgets/app_button.dart';
-import 'package:gen_confi/core/widgets/section_title.dart';
 
 class GenderModeScreen extends StatefulWidget {
   const GenderModeScreen({super.key});
@@ -34,97 +32,185 @@ class _GenderModeScreenState extends State<GenderModeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: const BackButton(color: AppColors.textPrimary),
-        title: const Text(
-          'Step 1 of 4',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: LinearProgressIndicator(
-            value: 0.25,
-            backgroundColor: AppColors.border,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-            minHeight: 4,
-          ),
-        ),
-      ),
+      backgroundColor: const Color(0xFF0D9488), // Teal-600
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _HeaderDetails(),
-                    const SizedBox(height: AppSpacing.xl),
-
-                    const SectionTitle(title: 'I identify as...'),
-                    const SizedBox(height: AppSpacing.md),
-                    Wrap(
-                      spacing: AppSpacing.md,
-                      runSpacing: AppSpacing.md,
-                      children: _genders
-                          .map(
-                            (gender) => SizedBox(
-                              width:
-                                  (MediaQuery.of(context).size.width -
-                                      48 -
-                                      16) /
-                                  2, // 2 columns approx
-                              child: _SelectionCard(
-                                title: gender,
-                                isSelected: _selectedGender == gender,
-                                centered: true,
-                                onTap: () =>
-                                    setState(() => _selectedGender = gender),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    const SectionTitle(title: 'My Goal'),
-                    const SizedBox(height: AppSpacing.md),
-                    ..._modes.map(
-                      (mode) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                        child: _SelectionCard(
-                          title: mode['title']!,
-                          description: mode['description'],
-                          isSelected: _selectedMode == mode['title'],
-                          onTap: () =>
-                              setState(() => _selectedMode = mode['title']),
+            // Top Section (Teal Background)
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Custom AppBar-like row
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'Step 1 of 4',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
                         ),
                       ),
+                      const Spacer(),
+                      const SizedBox(width: 20), // Balance the back button
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Let’s get to know you',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                      height: 1.1,
                     ),
-
-                    const SizedBox(height: AppSpacing.xxl),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Your identity helps us tailor the perfect style recommendations.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.9),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: AppButton(
-                text: 'Continue',
-                onPressed: () {
-                  AppNavigation.pushNamed(context, AppRoutes.bodyTypeSelection);
-                },
-                isDisabled: !_canContinue,
+
+            // Bottom Section (White Card)
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(24),
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'I identify as...',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: _genders.map((gender) {
+                                  final isSelected = _selectedGender == gender;
+                                  return Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        right: gender == _genders.last ? 0 : 12,
+                                      ),
+                                      child: _SelectionChip(
+                                        label: gender,
+                                        isSelected: isSelected,
+                                        onTap: () => setState(
+                                          () => _selectedGender = gender,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+
+                              const SizedBox(height: 32),
+
+                              const Text(
+                                'My Goal',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ..._modes.map(
+                                (mode) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _SelectionCard(
+                                    title: mode['title']!,
+                                    description: mode['description'],
+                                    isSelected: _selectedMode == mode['title'],
+                                    onTap: () => setState(
+                                      () => _selectedMode = mode['title'],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Sticky Bottom Button
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border(
+                            top: BorderSide(
+                              color: Colors.grey.withOpacity(0.1),
+                            ),
+                          ),
+                        ),
+                        child: AppButton(
+                          text: 'Continue',
+                          onPressed: () {
+                            final store = OnboardingStore();
+                            store.update(
+                              store.draft.copyWith(
+                                gender: _selectedGender,
+                                mode: _selectedMode,
+                              ),
+                            );
+                            AppNavigation.pushNamed(
+                              context,
+                              AppRoutes.bodyTypeSelection,
+                            );
+                          },
+                          isDisabled: !_canContinue,
+                          style: AppButtonStyle.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -134,29 +220,53 @@ class _GenderModeScreenState extends State<GenderModeScreen> {
   }
 }
 
-class _HeaderDetails extends StatelessWidget {
-  const _HeaderDetails();
+class _SelectionChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SelectionChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Let’s get to know you',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900, // Bold header
-            color: AppColors.textPrimary,
-            letterSpacing: -0.5,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0D9488) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF0D9488)
+                : const Color(0xFFE2E8F0),
+            width: isSelected ? 0 : 1.5,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF0D9488).withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? Colors.white : const Color(0xFF64748B),
+            ),
           ),
         ),
-        SizedBox(height: AppSpacing.sm),
-        Text(
-          'Your identity helps us tailor the perfect style recommendations.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -165,94 +275,96 @@ class _SelectionCard extends StatelessWidget {
   final String title;
   final String? description;
   final bool isSelected;
-  final bool centered;
   final VoidCallback onTap;
 
   const _SelectionCard({
     required this.title,
     this.description,
     required this.isSelected,
-    this.centered = false,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isSelected
-            ? AppColors.skyBlue.withValues(alpha: 0.5)
-            : AppColors.surface,
-        border: Border.all(
-          color: isSelected ? AppColors.primary : AppColors.border,
-          width: isSelected ? 2 : 1,
-        ),
-        borderRadius: BorderRadius.circular(20), // Pill-like
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : [],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFF0FDFA) // Light Teal bg
+              : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              mainAxisAlignment: centered
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: centered
-                        ? CrossAxisAlignment.center
-                        : CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.textPrimary,
-                        ),
-                      ),
-                      if (description != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          description!,
-                          style: TextStyle(
-                            color: isSelected
-                                ? AppColors.textPrimary.withOpacity(0.8)
-                                : AppColors.textSecondary,
-                            fontSize: 14,
-                            height: 1.4,
-                          ),
-                          textAlign: centered
-                              ? TextAlign.center
-                              : TextAlign.start,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (isSelected && !centered)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 12),
-                    child: Icon(Icons.check_circle, color: AppColors.primary),
-                  ),
-              ],
-            ),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF0D9488)
+                : const Color(0xFFE2E8F0),
+            width: 2,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? const Color(0xFF0D9488).withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected
+                          ? const Color(0xFF0D9488)
+                          : const Color(0xFF1E293B),
+                    ),
+                  ),
+                  if (description != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      description!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isSelected
+                            ? const Color(0xFF0F766E).withOpacity(0.8)
+                            : const Color(0xFF64748B),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? const Color(0xFF0D9488)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF0D9488)
+                      : const Color(0xFFCBD5E1),
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  : null,
+            ),
+          ],
         ),
       ),
     );

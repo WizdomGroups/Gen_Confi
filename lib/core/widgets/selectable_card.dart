@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gen_confi/core/constants/app_colors.dart';
-import 'package:gen_confi/core/constants/app_spacing.dart';
-import 'package:gen_confi/core/widgets/app_card.dart';
 
 class SelectableCard extends StatelessWidget {
   final String title;
@@ -21,75 +18,74 @@ class SelectableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      onTap: onTap,
-      padding: EdgeInsets.zero,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.skyBlue.withValues(alpha: 0.5) // Soft Sky Blue fill
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(24), // Softer, pill-like corners
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 2 : 1,
-            strokeAlign: BorderSide.strokeAlignInside,
-          ),
-        ),
-        // Use Stack to position the check icon independently of the centered text content.
-        // This avoids using Spacer() inside a potentially unconstrained Column.
-        child: Stack(
-          children: [
-            // Center Content (Title + Subtitle)
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Add a bit of top padding so text doesn't overlap with the check icon area
-                  // if the card is small.
-                  if (isSelected) const SizedBox(height: 12),
-
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textPrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle!,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ],
-              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFF0FDFA) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF0D9488)
+                  : const Color(0xFFE2E8F0),
+              width: isSelected ? 2 : 1,
             ),
-
-            // Selection Indicator (Top Right)
-            if (isSelected)
-              const Positioned(
-                top: 0,
-                right: 0,
-                child: Icon(
-                  Icons.check_circle,
-                  color: AppColors.primary,
-                  size: 20,
+            boxShadow: [
+              if (isSelected)
+                BoxShadow(
+                  color: const Color(0xFF0D9488).withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: isSelected
+                            ? const Color(0xFF0D9488)
+                            : const Color(0xFF1E293B),
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-          ],
+              if (isSelected)
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF0D9488),
+                  size: 20,
+                )
+              else if (trailing != null)
+                trailing!,
+            ],
+          ),
         ),
       ),
     );

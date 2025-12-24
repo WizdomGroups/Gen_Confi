@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gen_confi/core/constants/app_colors.dart';
+
 import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/widgets/app_button.dart';
 
@@ -31,105 +31,165 @@ class OnboardingShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate progress (ensure it doesn't exceed 1.0)
+    // Calculate progress
     final double progress = (stepIndex / totalSteps).clamp(0.0, 1.0);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: const BackButton(color: AppColors.textPrimary),
-        title: Text(
-          'Step $stepIndex of $totalSteps',
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          if (showSkip && onSkip != null)
-            TextButton(
-              onPressed: onSkip,
-              child: const Text(
-                'Skip',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: AppColors.border,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-            minHeight: 4,
-          ),
-        ),
-      ),
+      backgroundColor: const Color(0xFF0D9488), // Teal-600
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.xl,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                            letterSpacing: -0.5,
-                          ),
+            // Top Section (Teal)
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Navigation Row
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 20,
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          subtitle,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 16,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const Spacer(),
+                      Column(
+                        children: [
+                          Text(
+                            'Step $stepIndex of $totalSteps',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-
-                        // Content
-                        child,
-                        // Bottom padding for scroll
-                        const SizedBox(height: 80),
-                      ],
+                          const SizedBox(height: 8),
+                          // Progress Bar inside header
+                          SizedBox(
+                            width: 80,
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: Colors.black12,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                              minHeight: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      // Skip Button or Placeholder
+                      if (showSkip && onSkip != null)
+                        TextButton(
+                          onPressed: onSkip,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white70,
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Skip',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 20),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  // Header Texts
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                      height: 1.1,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.9),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
 
-            // Sticky Bottom Bar
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border: Border(top: BorderSide(color: AppColors.border)),
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: AppButton(
-                    text: primaryCtaText,
-                    onPressed: onPrimaryPressed,
-                    isDisabled: !primaryEnabled,
-                    width: double.infinity,
+            // Bottom Section (White Card)
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
+                  ),
+                  child: Column(
+                    children: [
+                      // Content Area
+                      Expanded(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 720),
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                                vertical: AppSpacing.xl,
+                              ),
+                              child: child,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Sticky Bottom Bar
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border(
+                            top: BorderSide(
+                              color: Colors.grey.withOpacity(0.1),
+                            ),
+                          ),
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 720),
+                            child: AppButton(
+                              text: primaryCtaText,
+                              onPressed: onPrimaryPressed,
+                              isDisabled: !primaryEnabled,
+                              width: double.infinity,
+                              style: AppButtonStyle.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 
-enum AppButtonStyle { primary, secondary, outline }
+enum AppButtonStyle { primary, secondary, outline, ghost }
 
-class AppButton extends StatelessWidget {
+enum AppButtonSize { small, medium, large }
+
+class AppButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool isDisabled;
   final AppButtonStyle style;
+  final AppButtonSize size;
   final double? width;
-  final IconData? icon; // Added icon support for a professional touch
+  final IconData? icon;
+  final IconData? suffixIcon;
+  final bool fullWidth;
 
   const AppButton({
     super.key,
@@ -19,61 +24,151 @@ class AppButton extends StatelessWidget {
     this.isLoading = false,
     this.isDisabled = false,
     this.style = AppButtonStyle.primary,
+    this.size = AppButtonSize.medium,
     this.width,
     this.icon,
+    this.suffixIcon,
+    this.fullWidth = true,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final bool effectiveDisabled = isDisabled || isLoading || onPressed == null;
+  State<AppButton> createState() => _AppButtonState();
+}
 
-    return Container(
-      width: width ?? double.infinity,
-      height: 52,
-      decoration: BoxDecoration(
-        gradient: _getGradient(effectiveDisabled),
-        color: _getBackgroundColor(effectiveDisabled),
-        borderRadius: BorderRadius.circular(30), // Pill/Rounded style
-        border: _getBorder(effectiveDisabled),
-        boxShadow: _getShadow(effectiveDisabled),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: effectiveDisabled ? null : onPressed,
-          borderRadius: BorderRadius.circular(30),
-          child: Center(child: isLoading ? _buildLoader() : _buildContent()),
+class _AppButtonState extends State<AppButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    if (!_isEffectiveDisabled) {
+      setState(() => _isPressed = true);
+      _controller.forward();
+    }
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    if (!_isEffectiveDisabled) {
+      setState(() => _isPressed = false);
+      _controller.reverse();
+    }
+  }
+
+  void _handleTapCancel() {
+    if (!_isEffectiveDisabled) {
+      setState(() => _isPressed = false);
+      _controller.reverse();
+    }
+  }
+
+  bool get _isEffectiveDisabled =>
+      widget.isDisabled || widget.isLoading || widget.onPressed == null;
+
+  @override
+  Widget build(BuildContext context) {
+    final dimensions = _getDimensions();
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Container(
+        width: widget.fullWidth
+            ? (widget.width ?? double.infinity)
+            : widget.width,
+        height: dimensions.height,
+        decoration: BoxDecoration(
+          gradient: _getGradient(),
+          color: _getBackgroundColor(),
+          borderRadius: BorderRadius.circular(dimensions.borderRadius),
+          border: _getBorder(),
+          boxShadow: _getShadow(),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _isEffectiveDisabled ? null : widget.onPressed,
+            onTapDown: _handleTapDown,
+            onTapUp: _handleTapUp,
+            onTapCancel: _handleTapCancel,
+            borderRadius: BorderRadius.circular(dimensions.borderRadius),
+            splashColor: _getSplashColor(),
+            highlightColor: _getHighlightColor(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: dimensions.horizontalPadding,
+              ),
+              child: Center(
+                child: widget.isLoading ? _buildLoader() : _buildContent(),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildContent() {
+    final dimensions = _getDimensions();
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (icon != null) ...[
-          Icon(icon, size: 20, color: _getTextColor()),
-          const SizedBox(width: 8),
+        if (widget.icon != null) ...[
+          Icon(widget.icon, size: dimensions.iconSize, color: _getTextColor()),
+          SizedBox(width: dimensions.iconSpacing),
         ],
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-            color: _getTextColor(),
+        Flexible(
+          child: Text(
+            widget.text,
+            style: TextStyle(
+              fontSize: dimensions.fontSize,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: _getTextColor(),
+              height: 1.2,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ),
+        if (widget.suffixIcon != null) ...[
+          SizedBox(width: dimensions.iconSpacing),
+          Icon(
+            widget.suffixIcon,
+            size: dimensions.iconSize,
+            color: _getTextColor(),
+          ),
+        ],
       ],
     );
   }
 
   Widget _buildLoader() {
+    final dimensions = _getDimensions();
     return SizedBox(
-      height: 20,
-      width: 20,
+      height: dimensions.loaderSize,
+      width: dimensions.loaderSize,
       child: CircularProgressIndicator(
         strokeWidth: 2.5,
         valueColor: AlwaysStoppedAnimation<Color>(_getTextColor()),
@@ -81,55 +176,159 @@ class AppButton extends StatelessWidget {
     );
   }
 
-  Gradient? _getGradient(bool disabled) {
-    if (disabled) return null;
-    if (style == AppButtonStyle.primary) {
-      return AppColors.primaryGradient;
+  _ButtonDimensions _getDimensions() {
+    switch (widget.size) {
+      case AppButtonSize.small:
+        return _ButtonDimensions(
+          height: 40,
+          fontSize: 13,
+          iconSize: 16,
+          iconSpacing: 6,
+          horizontalPadding: 16,
+          borderRadius: 12,
+          loaderSize: 16,
+        );
+      case AppButtonSize.medium:
+        return _ButtonDimensions(
+          height: 52,
+          fontSize: 15,
+          iconSize: 20,
+          iconSpacing: 8,
+          horizontalPadding: 20,
+          borderRadius: 16,
+          loaderSize: 20,
+        );
+      case AppButtonSize.large:
+        return _ButtonDimensions(
+          height: 60,
+          fontSize: 17,
+          iconSize: 24,
+          iconSpacing: 10,
+          horizontalPadding: 24,
+          borderRadius: 18,
+          loaderSize: 24,
+        );
+    }
+  }
+
+  Gradient? _getGradient() {
+    if (_isEffectiveDisabled) return null;
+    if (widget.style == AppButtonStyle.primary) {
+      return const LinearGradient(
+        colors: [Color(0xFF14B8A6), Color(0xFF0D9488)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
     }
     return null;
   }
 
-  Color? _getBackgroundColor(bool disabled) {
-    if (disabled) {
-      return AppColors.textMuted.withValues(alpha: 0.2); // Disabled state
+  Color? _getBackgroundColor() {
+    if (_isEffectiveDisabled) {
+      return const Color(0xFFE2E8F0);
     }
-    if (style == AppButtonStyle.primary) {
-      return null; // Handled by gradient
+
+    switch (widget.style) {
+      case AppButtonStyle.primary:
+        return null; // Gradient handles this. Returning color + gradient can cause issues.
+      case AppButtonStyle.secondary:
+        return _isPressed ? const Color(0xFFE0F2F1) : const Color(0xFFF0FDFA);
+      case AppButtonStyle.outline:
+        return _isPressed ? const Color(0xFFF0FDFA) : Colors.transparent;
+      case AppButtonStyle.ghost:
+        return _isPressed ? const Color(0xFFF0FDFA) : Colors.transparent;
     }
-    if (style == AppButtonStyle.secondary) {
-      return AppColors.skyBlue.withValues(alpha: 0.3); // Light background
-    }
-    return Colors.transparent; // Outline
   }
 
-  BoxBorder? _getBorder(bool disabled) {
-    if (style == AppButtonStyle.primary) return null;
+  BoxBorder? _getBorder() {
+    if (widget.style == AppButtonStyle.primary ||
+        widget.style == AppButtonStyle.ghost) {
+      return null;
+    }
 
-    // Outline or Secondary
-    final borderColor = disabled ? AppColors.textMuted : AppColors.primary;
+    final borderColor = _isEffectiveDisabled
+        ? const Color(0xFFCBD5E1)
+        : const Color(0xFF0D9488);
 
-    return Border.all(color: borderColor, width: 1.5);
+    return Border.all(
+      color: borderColor,
+      width: widget.style == AppButtonStyle.outline ? 2.0 : 1.5,
+    );
   }
 
-  List<BoxShadow>? _getShadow(bool disabled) {
-    if (disabled || style == AppButtonStyle.outline) return null;
+  List<BoxShadow>? _getShadow() {
+    if (_isEffectiveDisabled ||
+        widget.style == AppButtonStyle.outline ||
+        widget.style == AppButtonStyle.ghost) {
+      return null;
+    }
 
+    if (widget.style == AppButtonStyle.primary) {
+      return [
+        BoxShadow(
+          color: const Color(0xFF0D9488).withOpacity(_isPressed ? 0.2 : 0.3),
+          blurRadius: _isPressed ? 12 : 16,
+          offset: Offset(0, _isPressed ? 4 : 8),
+        ),
+      ];
+    }
+
+    // Secondary style shadow
     return [
       BoxShadow(
-        color: AppColors.primary.withValues(alpha: 0.3),
-        blurRadius: 10,
-        offset: const Offset(0, 4),
+        color: const Color(0xFF0D9488).withOpacity(0.1),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
       ),
     ];
   }
 
-  Color _getTextColor() {
-    if (isDisabled || onPressed == null) {
-      return AppColors.textMuted;
+  Color _getSplashColor() {
+    if (widget.style == AppButtonStyle.primary) {
+      return Colors.white.withOpacity(0.2);
     }
-    if (style == AppButtonStyle.primary) {
-      return Colors.white;
-    }
-    return AppColors.primary;
+    return const Color(0xFF0D9488).withOpacity(0.1);
   }
+
+  Color _getHighlightColor() {
+    if (widget.style == AppButtonStyle.primary) {
+      return Colors.white.withOpacity(0.1);
+    }
+    return const Color(0xFF0D9488).withOpacity(0.05);
+  }
+
+  Color _getTextColor() {
+    if (_isEffectiveDisabled) {
+      return const Color(0xFF94A3B8);
+    }
+
+    switch (widget.style) {
+      case AppButtonStyle.primary:
+        return Colors.white;
+      case AppButtonStyle.secondary:
+      case AppButtonStyle.outline:
+      case AppButtonStyle.ghost:
+        return const Color(0xFF0D9488);
+    }
+  }
+}
+
+class _ButtonDimensions {
+  final double height;
+  final double fontSize;
+  final double iconSize;
+  final double iconSpacing;
+  final double horizontalPadding;
+  final double borderRadius;
+  final double loaderSize;
+
+  _ButtonDimensions({
+    required this.height,
+    required this.fontSize,
+    required this.iconSize,
+    required this.iconSpacing,
+    required this.horizontalPadding,
+    required this.borderRadius,
+    required this.loaderSize,
+  });
 }
