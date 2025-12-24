@@ -12,6 +12,10 @@ class AppRoutes {
       '/client/onboarding/grooming-profile';
   static const String clientOnboardingFinish = '/client/onboarding/finish';
   static const String clientHome = '/client/home';
+  static const String clientProfile = '/client/profile';
+  static const String clientProfileEdit = '/client/profile/edit';
+  static const String clientProfileStyleDetails =
+      '/client/profile/style-details';
   static const String expertOnboarding = '/expert/onboarding';
   static const String expertHome = '/expert/home';
   static const String adminDashboard = '/admin/dashboard';

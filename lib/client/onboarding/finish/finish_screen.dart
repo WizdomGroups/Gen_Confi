@@ -17,9 +17,19 @@ class FinishScreen extends StatelessWidget {
     // Collect summary items for chips
     final summaryItems = <String>[];
     if (draft.bodyType != null) summaryItems.add(draft.bodyType!);
-    if (draft.fitPreference != null) summaryItems.add(draft.fitPreference!);
-    summaryItems.addAll(draft.styleTags.take(3));
-    if (draft.groomingGoal != null) summaryItems.add(draft.groomingGoal!);
+    // if (draft.fitPreference != null) summaryItems.add(draft.fitPreference!); // Fit pref used to be there? Checking model.. yes it is.
+    summaryItems.addAll(
+      draft.styleTags.take(2),
+    ); // Reduce style tags to make room
+
+    // Gender specific
+    if (draft.beardPreference != null) summaryItems.add(draft.beardPreference!);
+    if (draft.makeupFrequency != null && draft.makeupFrequency != 'None') {
+      summaryItems.add('Makeup: ${draft.makeupFrequency}');
+    }
+
+    if (draft.hairGoal != null) summaryItems.add(draft.hairGoal!);
+    if (draft.skinGoal != null) summaryItems.add(draft.skinGoal!);
 
     return BaseScaffold(
       // Clean slate, no back button to encourage moving forward

@@ -7,8 +7,11 @@ class OnboardingDraft {
   final List<String> colorPrefs;
   final String? skinType;
   final String? hairType;
-  final String? groomingGoal;
-  final String? facialPreference;
+  final String? beardPreference;
+  final String? makeupFrequency;
+  final List<String> groomingConcerns;
+  final String? hairGoal;
+  final String? skinGoal;
 
   const OnboardingDraft({
     this.gender,
@@ -19,8 +22,11 @@ class OnboardingDraft {
     this.colorPrefs = const [],
     this.skinType,
     this.hairType,
-    this.groomingGoal,
-    this.facialPreference,
+    this.beardPreference,
+    this.makeupFrequency,
+    this.groomingConcerns = const [],
+    this.hairGoal,
+    this.skinGoal,
   });
 
   OnboardingDraft copyWith({
@@ -32,8 +38,11 @@ class OnboardingDraft {
     List<String>? colorPrefs,
     String? skinType,
     String? hairType,
-    String? groomingGoal,
-    String? facialPreference,
+    String? beardPreference,
+    String? makeupFrequency,
+    List<String>? groomingConcerns,
+    String? hairGoal,
+    String? skinGoal,
   }) {
     return OnboardingDraft(
       gender: gender ?? this.gender,
@@ -44,8 +53,11 @@ class OnboardingDraft {
       colorPrefs: colorPrefs ?? this.colorPrefs,
       skinType: skinType ?? this.skinType,
       hairType: hairType ?? this.hairType,
-      groomingGoal: groomingGoal ?? this.groomingGoal,
-      facialPreference: facialPreference ?? this.facialPreference,
+      beardPreference: beardPreference ?? this.beardPreference,
+      makeupFrequency: makeupFrequency ?? this.makeupFrequency,
+      groomingConcerns: groomingConcerns ?? this.groomingConcerns,
+      hairGoal: hairGoal ?? this.hairGoal,
+      skinGoal: skinGoal ?? this.skinGoal,
     );
   }
 
@@ -60,8 +72,11 @@ class OnboardingDraft {
       'colorPrefs': colorPrefs,
       'skinType': skinType,
       'hairType': hairType,
-      'groomingGoal': groomingGoal,
-      'facialPreference': facialPreference,
+      'beardPreference': beardPreference,
+      'makeupFrequency': makeupFrequency,
+      'groomingConcerns': groomingConcerns,
+      'hairGoal': hairGoal,
+      'skinGoal': skinGoal,
     };
   }
 
@@ -83,8 +98,15 @@ class OnboardingDraft {
           [],
       skinType: json['skinType'] as String?,
       hairType: json['hairType'] as String?,
-      groomingGoal: json['groomingGoal'] as String?,
-      facialPreference: json['facialPreference'] as String?,
+      beardPreference: json['beardPreference'] as String?,
+      makeupFrequency: json['makeupFrequency'] as String?,
+      groomingConcerns:
+          (json['groomingConcerns'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      hairGoal: json['hairGoal'] as String?,
+      skinGoal: json['skinGoal'] as String?,
     );
   }
 }

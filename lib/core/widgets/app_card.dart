@@ -8,6 +8,7 @@ class AppCard extends StatelessWidget {
   final VoidCallback? onTap;
   final double? width;
   final Color? borderColor;
+  final Color? backgroundColor;
   final bool showShadow;
 
   const AppCard({
@@ -18,6 +19,7 @@ class AppCard extends StatelessWidget {
     this.onTap,
     this.width,
     this.borderColor,
+    this.backgroundColor,
     this.showShadow = false,
   });
 
@@ -26,7 +28,7 @@ class AppCard extends StatelessWidget {
     return Container(
       width: width,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: backgroundColor ?? AppColors.surface,
         borderRadius: BorderRadius.circular(
           16,
         ), // Increased for a more modern, friendly look

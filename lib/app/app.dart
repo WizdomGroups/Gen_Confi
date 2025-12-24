@@ -16,6 +16,9 @@ import 'package:gen_confi/client/home/client_home_dashboard.dart';
 import 'package:gen_confi/expert/home/expert_home_dashboard.dart';
 import 'package:gen_confi/expert/onboarding/expert_onboarding_screen.dart';
 import 'package:gen_confi/admin/dashboard/admin_dashboard.dart';
+import 'package:gen_confi/client/profile/profile_screen.dart';
+import 'package:gen_confi/client/profile/edit_profile_screen.dart';
+import 'package:gen_confi/client/profile/style_profile_details_screen.dart';
 
 class GenConfiApp extends StatelessWidget {
   const GenConfiApp({super.key});
@@ -42,6 +45,10 @@ class GenConfiApp extends StatelessWidget {
             const GroomingProfileScreen(),
         AppRoutes.clientOnboardingFinish: (context) => const FinishScreen(),
         AppRoutes.clientHome: (context) => const ClientHomeDashboard(),
+        AppRoutes.clientProfile: (context) => const ProfileScreen(),
+        AppRoutes.clientProfileEdit: (context) => const EditProfileScreen(),
+        AppRoutes.clientProfileStyleDetails: (context) =>
+            const StyleProfileDetailsScreen(),
 
         AppRoutes.expertOnboarding: (context) => const ExpertOnboardingScreen(),
         AppRoutes.expertHome: (context) => const ExpertHomeDashboard(),
