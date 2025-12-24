@@ -4,7 +4,7 @@ import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/widgets/app_button.dart';
 import 'package:gen_confi/core/widgets/app_text_field.dart';
-import 'package:gen_confi/core/widgets/selectable_card.dart';
+
 import 'package:gen_confi/services/auth_store.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -173,25 +173,6 @@ class _SignupScreenState extends State<SignupScreen>
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 8),
-                        // Compact Social Login Row (Requested here)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _SmallSocialButton(
-                              icon: Icons.g_mobiledata,
-                              onTap: () => _handleSocialSignup('Google'),
-                              color: AppColors.textPrimary,
-                            ),
-                            const SizedBox(width: 24),
-                            _SmallSocialButton(
-                              icon: Icons.camera_alt_outlined,
-                              onTap: () => _handleSocialSignup('Instagram'),
-                              color: const Color(0xFFE4405F),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
                         // Section Title
                         const Text(
                           'Personal Info',
@@ -214,76 +195,38 @@ class _SignupScreenState extends State<SignupScreen>
                         const SizedBox(height: 24),
 
                         // Fields
-                        _CompactLabelField(label: 'Full Name'),
                         AppTextField(
                           controller: _nameController,
+                          label: 'Full Name',
                           hint: 'First Name   Last Name',
                           prefixIcon: Icons.person_outline,
                         ),
                         const SizedBox(height: 16),
 
-                        _CompactLabelField(label: 'Email Address'),
                         AppTextField(
                           controller: _emailController,
+                          label: 'Email Address',
                           hint: 'your.email@example.com',
                           keyboardType: TextInputType.emailAddress,
                           prefixIcon: Icons.email_outlined,
                         ),
                         const SizedBox(height: 16),
 
-                        _CompactLabelField(label: 'Phone Number'),
                         AppTextField(
                           controller: _phoneController,
+                          label: 'Phone Number',
                           hint: '123-456-7890',
                           keyboardType: TextInputType.phone,
                           prefixIcon: Icons.phone_outlined,
                         ),
                         const SizedBox(height: 16),
 
-                        _CompactLabelField(label: 'Password'),
                         AppTextField(
                           controller: _passwordController,
+                          label: 'Password',
                           hint: '••••••••',
                           obscureText: true,
                           prefixIcon: Icons.lock_outline,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Role Selector (Compact)
-                        const Text(
-                          "I want to...",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SelectableCard(
-                                title: "Client",
-                                subtitle: null, // Compact
-                                isSelected: _selectedRole == UserRole.client,
-                                onTap: () => setState(
-                                  () => _selectedRole = UserRole.client,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SelectableCard(
-                                title: "Expert",
-                                subtitle: null,
-                                isSelected: _selectedRole == UserRole.expert,
-                                onTap: () => setState(
-                                  () => _selectedRole = UserRole.expert,
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
 
                         const SizedBox(height: 32),
@@ -294,6 +237,36 @@ class _SignupScreenState extends State<SignupScreen>
                           onPressed: _isLoading ? null : _handleSignup,
                           width: double.infinity,
                           style: AppButtonStyle.primary, // Teal
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Compact Social Login Row (Moved to Bottom)
+                        const Text(
+                          "Or continue with",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _SmallSocialButton(
+                              logoUrl:
+                                  'https://cdn-icons-png.flaticon.com/512/300/300221.png', // Google Logo
+                              onTap: () => _handleSocialSignup('Google'),
+                            ),
+                            const SizedBox(width: 24),
+                            _SmallSocialButton(
+                              logoUrl:
+                                  'https://cdn-icons-png.flaticon.com/512/2111/2111463.png', // Instagram Logo
+                              onTap: () => _handleSocialSignup('Instagram'),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 20),
@@ -327,15 +300,10 @@ class _SignupScreenState extends State<SignupScreen>
 }
 
 class _SmallSocialButton extends StatelessWidget {
-  final IconData icon;
+  final String logoUrl;
   final VoidCallback onTap;
-  final Color color;
 
-  const _SmallSocialButton({
-    required this.icon,
-    required this.onTap,
-    required this.color,
-  });
+  const _SmallSocialButton({required this.logoUrl, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -345,6 +313,7 @@ class _SmallSocialButton extends StatelessWidget {
       child: Container(
         width: 48,
         height: 48,
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
@@ -356,27 +325,7 @@ class _SmallSocialButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(icon, color: color, size: 28),
-      ),
-    );
-  }
-}
-
-class _CompactLabelField extends StatelessWidget {
-  final String label;
-  const _CompactLabelField({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
+        child: Image.network(logoUrl, fit: BoxFit.contain),
       ),
     );
   }
