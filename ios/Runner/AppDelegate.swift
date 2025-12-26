@@ -8,6 +8,7 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    SmartCapturePlugin.register(with: registrar(forPlugin: "SmartCapturePlugin")!)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

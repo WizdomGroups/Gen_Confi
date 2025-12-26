@@ -116,7 +116,7 @@ class FinishScreen extends StatelessWidget {
                     AuthStore().markOnboardingCompleteForCurrentRole();
                     Navigator.pushNamedAndRemoveUntil(
                       context,
-                      AppRoutes.clientHome,
+                      AppRoutes.clientShell,
                       (route) => false,
                     );
                   },

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
-import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/services/auth_store.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -132,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     if (role == UserRole.client) {
       if (isOnboarded) {
-        Navigator.pushReplacementNamed(context, AppRoutes.clientHome);
+        Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
       } else {
         Navigator.pushReplacementNamed(context, AppRoutes.genderModeSelection);
       }
@@ -141,7 +140,6 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
@@ -444,15 +442,15 @@ class _LoginScreenState extends State<LoginScreen>
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       _SocialIcon(
-                                        logoUrl:
-                                            'https://cdn-icons-png.flaticon.com/512/300/300221.png',
+                                        assetPath:
+                                            'assets/images/google_logo.png',
                                         onTap: () =>
                                             _handleSocialLogin('Google'),
                                       ),
                                       const SizedBox(width: 20),
                                       _SocialIcon(
-                                        logoUrl:
-                                            'https://cdn-icons-png.flaticon.com/512/2111/2111463.png',
+                                        assetPath:
+                                            'assets/images/instagram_logo.png',
                                         onTap: () =>
                                             _handleSocialLogin('Instagram'),
                                       ),
@@ -624,10 +622,10 @@ class _LoginScreenState extends State<LoginScreen>
 }
 
 class _SocialIcon extends StatelessWidget {
-  final String logoUrl;
+  final String assetPath;
   final VoidCallback onTap;
 
-  const _SocialIcon({required this.logoUrl, required this.onTap});
+  const _SocialIcon({required this.assetPath, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -650,12 +648,8 @@ class _SocialIcon extends StatelessWidget {
             ),
           ],
         ),
-        child: Image.network(
-          logoUrl,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return const CircularProgressIndicator(strokeWidth: 2);
-          },
+        child: Image.asset(
+          assetPath,
           errorBuilder: (context, error, stackTrace) {
             return const Icon(Icons.error_outline, size: 20);
           },

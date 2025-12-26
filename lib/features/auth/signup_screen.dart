@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
-import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/services/auth_store.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -129,7 +128,6 @@ class _SignupScreenState extends State<SignupScreen>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
@@ -351,15 +349,14 @@ class _SignupScreenState extends State<SignupScreen>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   _SocialButton(
-                                    logoUrl:
-                                        'https://cdn-icons-png.flaticon.com/512/300/300221.png',
+                                    assetPath: 'assets/images/google_logo.png',
                                     label: 'Google',
                                     onTap: () => _handleSocialSignup('Google'),
                                   ),
                                   const SizedBox(width: 16),
                                   _SocialButton(
-                                    logoUrl:
-                                        'https://cdn-icons-png.flaticon.com/512/2111/2111463.png',
+                                    assetPath:
+                                        'assets/images/instagram_logo.png',
                                     label: 'Instagram',
                                     onTap: () =>
                                         _handleSocialSignup('Instagram'),
@@ -524,12 +521,12 @@ class _SignupScreenState extends State<SignupScreen>
 }
 
 class _SocialButton extends StatelessWidget {
-  final String logoUrl;
+  final String assetPath;
   final String label;
   final VoidCallback onTap;
 
   const _SocialButton({
-    required this.logoUrl,
+    required this.assetPath,
     required this.label,
     required this.onTap,
   });
@@ -559,20 +556,10 @@ class _SocialButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.network(
-                  logoUrl,
+                Image.asset(
+                  assetPath,
                   height: 24,
                   width: 24,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    );
-                  },
                   errorBuilder: (context, error, stackTrace) {
                     return const Icon(
                       Icons.error_outline,

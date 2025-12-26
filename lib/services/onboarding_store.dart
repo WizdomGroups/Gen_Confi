@@ -14,6 +14,32 @@ class OnboardingStore {
     _draft = newDraft;
   }
 
+  void updateDraft({
+    String? gender,
+    String? bodyType,
+    String? fitPreference,
+    List<String>? styleTags,
+    String? hairType,
+    String? skinType,
+    String? beardPreference,
+    String? makeupFrequency,
+    String? hairGoal,
+    String? skinGoal,
+  }) {
+    _draft = _draft.copyWith(
+      gender: gender,
+      bodyType: bodyType,
+      fitPreference: fitPreference,
+      styleTags: styleTags,
+      hairType: hairType,
+      skinType: skinType,
+      beardPreference: beardPreference,
+      makeupFrequency: makeupFrequency,
+      hairGoal: hairGoal,
+      skinGoal: skinGoal,
+    );
+  }
+
   void reset() {
     _draft = const OnboardingDraft();
   }
