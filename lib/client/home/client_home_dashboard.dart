@@ -57,6 +57,8 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
     final greeting = _getGreeting();
     
     return ResponsiveContainer(
+      // Enable full width on mobile to avoid double padding (ResponsiveContainer padding + inner content padding)
+      fullWidthMobile: true,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

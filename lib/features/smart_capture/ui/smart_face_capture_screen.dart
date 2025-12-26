@@ -5,6 +5,8 @@ import 'package:gen_confi/core/layout/base_scaffold.dart';
 import 'package:gen_confi/features/smart_capture/logic/quality_gate.dart';
 import 'package:gen_confi/features/smart_capture/platform/mediapipe_capture_engine.dart';
 import 'package:gen_confi/features/smart_capture/ui/camera_preview_widget.dart';
+import 'package:gen_confi/features/client/grooming/ui/grooming_results_screen.dart'; 
+import 'package:gen_confi/services/auth_store.dart'; // Added import for AuthStore // Added import for result screen
 // import 'package:gen_confi/app/routes/app_routes.dart'; // Unused here unless we use pushReplacementNamed logic inside _performCapture which we changed to pop
 
 import 'package:permission_handler/permission_handler.dart';
@@ -98,10 +100,21 @@ class _SmartFaceCaptureScreenState extends State<SmartFaceCaptureScreen>
     if (!mounted) return;
 
     if (result != null) {
-      // Success! Navigate to Hub or processing
+      // Success! Navigate to Results Screen
       print("Captured image at: ${result.imagePath}");
-      // Here we would typically return the result to the previous screen or navigate forward
-      Navigator.pop(context, result);
+      
+      // Save to AuthStore
+      AuthStore().setGroomingCompleted(true, imagePath: result.imagePath);
+      
+      // Navigate to results screen (Keep camera on stack? No, replacement is better)
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GroomingResultsScreen(
+            imagePath: result.imagePath,
+          ),
+        ),
+      );
     } else {
       setState(() {
         _isCapturing = false;
