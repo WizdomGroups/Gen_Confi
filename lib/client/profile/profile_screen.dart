@@ -17,7 +17,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   // We rely on AuthStore for the source of truth, but setState triggers rebuild
-  
+
   @override
   Widget build(BuildContext context) {
     final draft = OnboardingStore().draft;
@@ -30,7 +30,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       useResponsiveContainer: false,
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.maxContentWidth,
+          ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 20),
             child: Column(
@@ -59,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: "Saved Grooming Styles",
                         onTap: () => _showComingSoon(context),
                       ),
-                       _buildListTile(
+                      _buildListTile(
                         context,
                         icon: Icons.camera_front_rounded,
                         title: "My Looks",
@@ -124,10 +126,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // 1. AuthStore.avatarUrl
     // 2. AuthStore.groomingImagePath (Real selfie) -> Maybe use this if no avatar? User requested "cartoon".
     // Let's prioritize Avatar > Real Selfie > Default Icon
-    
+
     final avatarUrl = AuthStore().avatarUrl;
     final realImage = AuthStore().groomingImagePath;
-    
+
     ImageProvider? imageProvider;
     if (avatarUrl != null) {
       if (avatarUrl.startsWith('http')) {
@@ -170,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     )
                   : null,
             ),
-            
+
             // Edit Profile Info
             Positioned(
               right: 0,
@@ -232,83 +234,259 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showAvatarSelectionSheet(BuildContext context) {
+    // Get gender from state or store
+    final draft = OnboardingStore().draft;
+    final gender = draft.gender ?? "Male"; // Default to Male if unknown
+
+    // Define seed lists based on gender
+    List<String> seeds;
+
+    // We will apply specific style constraints via URL params to ensure gender aesthetics
+    // Using 'avataaars' style from DiceBear
+
+    if (gender == "Female") {
+      seeds = [
+        'Bella',
+        'Sophia',
+        'Luna',
+        'Zoe',
+        'Ava',
+        'Mia',
+        'Lily',
+        'Chloe',
+        'Ruby',
+        'Emma',
+        'Grace',
+        'Ivy',
+      ];
+    } else if (gender == "Male") {
+      seeds = [
+        'Leo',
+        'Max',
+        'Liam',
+        'Kai',
+        'Noah',
+        'Ethan',
+        'Lucas',
+        'Mason',
+        'Logan',
+        'James',
+        'Felix',
+        'Aiden',
+      ];
+    } else {
+      // Mixed/Other
+      seeds = [
+        'Alex',
+        'Sky',
+        'Jordan',
+        'Taylor',
+        'Casey',
+        'Jamie',
+        'Riley',
+        'Avery',
+        'Morgan',
+        'Quinn',
+        'Rowan',
+        'Sage',
+      ];
+    }
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent, // For custom rounded aesthetic
+      isScrollControlled: true,
       builder: (ctx) {
-        // Mock list of cartoon avatars (DiceBear or similar)
-        // Using distinct seeds
-        final seeds = ['Felix', 'Aneka', 'Snuggles', 'Midnight', 'Spooky', 'Bandit'];
-        
         return Container(
-          padding: const EdgeInsets.all(24),
-          height: 400,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          height: MediaQuery.of(context).size.height * 0.6, // Taller sheet
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Choose an Avatar",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              // Drag Handle
+              Center(
+                child: Container(
+                  height: 4,
+                  width: 40,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Choose Avatar",
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Based on your profile ($gender)",
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Maybe a filter button later?
+                ],
+              ),
+              const SizedBox(height: 24),
               Expanded(
                 child: GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
+                    childAspectRatio: 0.9,
                   ),
-                  itemCount: seeds.length + 1, // +1 for "Upload"
+                  itemCount: seeds.length + 1, // +1 for Upload
                   itemBuilder: (context, index) {
                     if (index == 0) {
-                      // Upload from Gallery Option
+                      // Upload Option
                       return GestureDetector(
                         onTap: () {
                           Navigator.pop(ctx);
                           _showComingSoon(context, msg: "Opening Gallery...");
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.add_a_photo_rounded, color: AppColors.primary, size: 32),
-                              SizedBox(height: 4),
-                              Text("Upload", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                            ],
-                          ),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  border: Border.all(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.add_a_photo_rounded,
+                                    color: AppColors.primary,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              "Upload",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }
-                    
+
                     final seed = seeds[index - 1];
-                    final url = "https://api.dicebear.com/7.x/avataaars/png?seed=$seed&backgroundColor=b6e3f4";
-                    
+                    // Construct URL with constraints
+                    // Using 9.x API
+                    String url =
+                        "https://api.dicebear.com/9.x/avataaars/png?seed=$seed&backgroundColor=b6e3f4";
+
+                    if (gender == "Female") {
+                      // Female: Long hair styles, no facial hair
+                      url +=
+                          "&top=longHair,curvy,shaggyMullet,straight01,straight02,straightStrand&facialHairProbability=0";
+                    } else if (gender == "Male") {
+                      // Male: Short hair styles, some facial hair allowed
+                      url +=
+                          "&top=shortFlat,shortRound,shortWaved,caesar,caesarSidePart,dreads,frizzle&facialHairProbability=50";
+                    }
+                    // 'Other' uses default randomness
+
                     return GestureDetector(
                       onTap: () {
-                        // Select this avatar
+                        // Update Store
                         AuthStore().setAvatarUrl(url);
-                        setState(() {}); // Rebuild parent
+                        // Force refresh
+                        setState(() {});
                         Navigator.pop(ctx);
                       },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.border),
-                          image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
-                        ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: Image.network(
+                                  url,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Container(
+                                          color: Colors.grey[100],
+                                          child: const Center(
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: Colors.grey[200],
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.error_outline,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            seed, // Using seed name as a label for now
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -323,7 +501,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ... _buildSection and _buildListTile are same ...
   // Re-pasting helper methods for completeness within the StatefulWidget
-  
+
   Widget _buildSection({
     required String title,
     required List<Widget> children,
@@ -336,7 +514,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Text(
             title,
             style: const TextStyle(
-              fontSize: 18, 
+              fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
@@ -344,7 +522,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         AppCard(
           padding: EdgeInsets.zero,
-          backgroundColor: Colors.white, 
+          backgroundColor: Colors.white,
           child: Column(
             children: children.asMap().entries.map((entry) {
               final index = entry.key;
@@ -376,7 +554,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18), 
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         child: Row(
           children: [
             Container(
@@ -385,7 +563,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: (iconColor ?? AppColors.primary).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 20, color: iconColor ?? AppColors.primary),
+              child: Icon(
+                icon,
+                size: 20,
+                color: iconColor ?? AppColors.primary,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -434,8 +616,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showComingSoon(BuildContext context, {String msg = "Coming soon!"}) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 }

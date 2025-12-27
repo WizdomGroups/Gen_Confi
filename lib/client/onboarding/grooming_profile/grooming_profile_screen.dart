@@ -164,8 +164,8 @@ class _GroomingProfileScreenState extends State<GroomingProfileScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 800;
 
     return OnboardingShell(
-      stepIndex: 4,
-      totalSteps: 4,
+      stepIndex: 2,
+      totalSteps: 2,
       title: 'Your grooming profile',
       subtitle: 'A few quick picks so we can personalize your routine.',
       primaryCtaText: 'Continue',

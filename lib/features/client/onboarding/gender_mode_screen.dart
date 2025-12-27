@@ -58,7 +58,7 @@ class _GenderModeScreenState extends State<GenderModeScreen> {
                       ),
                       const Spacer(),
                       const Text(
-                        'Step 1 of 4',
+                        'Step 1 of 2',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 14,
@@ -201,7 +201,7 @@ class _GenderModeScreenState extends State<GenderModeScreen> {
                             );
                             AppNavigation.pushNamed(
                               context,
-                              AppRoutes.bodyTypeSelection,
+                              AppRoutes.clientOnboardingGroomingProfile,
                             );
                           },
                           isDisabled: !_canContinue,

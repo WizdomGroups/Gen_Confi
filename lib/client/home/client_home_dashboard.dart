@@ -11,16 +11,14 @@ import 'package:google_fonts/google_fonts.dart';
 class ClientHomeDashboard extends StatefulWidget {
   final Function(int) onNavigateToTab;
 
-  const ClientHomeDashboard({
-    super.key,
-    required this.onNavigateToTab,
-  });
+  const ClientHomeDashboard({super.key, required this.onNavigateToTab});
 
   @override
   State<ClientHomeDashboard> createState() => _ClientHomeDashboardState();
 }
 
-class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTickerProviderStateMixin {
+class _ClientHomeDashboardState extends State<ClientHomeDashboard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -32,16 +30,19 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
-    
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
     _animationController.forward();
   }
 
@@ -55,7 +56,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
   Widget build(BuildContext context) {
     final userName = AuthStore().userEmail?.split('@')[0] ?? "Alex";
     final greeting = _getGreeting();
-    
+
     return ResponsiveContainer(
       // Enable full width on mobile to avoid double padding (ResponsiveContainer padding + inner content padding)
       fullWidthMobile: true,
@@ -64,10 +65,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFF8FAFC),
-              const Color(0xFFF1F5F9),
-            ],
+            colors: [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
           ),
         ),
         child: Stack(
@@ -76,14 +74,17 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
             Positioned(
               top: -150,
               right: -100,
-              child: _buildAnimatedBlob(300, AppColors.primary.withOpacity(0.08)),
+              child: _buildAnimatedBlob(
+                300,
+                AppColors.primary.withOpacity(0.08),
+              ),
             ),
             Positioned(
               bottom: -100,
               left: -80,
               child: _buildAnimatedBlob(250, Colors.purple.withOpacity(0.06)),
             ),
-            
+
             SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               // Adjusted padding for better responsiveness (20 horizontal)
@@ -106,9 +107,24 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
 
                       _buildSectionHeader("Today's Routine", "View All"),
                       const SizedBox(height: AppSpacing.md),
-                      _buildRoutineItem("Morning Cleanse", "8:00 AM", true, Icons.water_drop_rounded),
-                      _buildRoutineItem("Moisturizer & SPF", "8:10 AM", true, Icons.wb_sunny_rounded),
-                      _buildRoutineItem("Night Repair Wash", "9:00 PM", false, Icons.nightlight_rounded),
+                      _buildRoutineItem(
+                        "Morning Cleanse",
+                        "8:00 AM",
+                        true,
+                        Icons.water_drop_rounded,
+                      ),
+                      _buildRoutineItem(
+                        "Moisturizer & SPF",
+                        "8:10 AM",
+                        true,
+                        Icons.wb_sunny_rounded,
+                      ),
+                      _buildRoutineItem(
+                        "Night Repair Wash",
+                        "9:00 PM",
+                        false,
+                        Icons.nightlight_rounded,
+                      ),
                       const SizedBox(height: AppSpacing.xxl),
 
                       _buildInsightsCard(context),
@@ -189,7 +205,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
           ),
         ),
         GestureDetector(
-          onTap: () => widget.onNavigateToTab(2),
+          onTap: () => widget.onNavigateToTab(3),
           child: Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
@@ -233,17 +249,13 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
   Widget _buildHeroActionCard(BuildContext context) {
     return Container(
       // increased height to prevent overflow
-      height: 220, 
+      height: 220,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0F172A),
-            Color(0xFF1E293B),
-            Color(0xFF334155),
-          ],
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF334155)],
         ),
         boxShadow: [
           BoxShadow(
@@ -264,15 +276,12 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withOpacity(0.1),
-                    Colors.transparent,
-                  ],
+                  colors: [Colors.white.withOpacity(0.1), Colors.transparent],
                 ),
               ),
             ),
           ),
-          
+
           // Decorative elements
           Positioned(
             right: -30,
@@ -286,7 +295,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
               ),
             ),
           ),
-          
+
           Positioned(
             right: 20,
             bottom: 20,
@@ -296,7 +305,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
               color: Colors.white.withOpacity(0.08),
             ),
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -309,11 +318,16 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.2)),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -362,7 +376,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
                     ],
                   ),
                 ),
-                
+
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -375,7 +389,9 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14), // Reduced from 16
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                      ), // Reduced from 16
                       elevation: 0,
                       shadowColor: Colors.transparent,
                     ),
@@ -394,7 +410,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
                       ],
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -439,7 +455,13 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
     );
   }
 
-  Widget _buildStatusCard(String title, String value, IconData icon, Color color, Color bgColor) {
+  Widget _buildStatusCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    Color bgColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -452,7 +474,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
             blurRadius: 20,
             offset: const Offset(0, 4),
             spreadRadius: -2,
-          )
+          ),
         ],
       ),
       child: Column(
@@ -525,7 +547,12 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
     );
   }
 
-  Widget _buildRoutineItem(String title, String time, bool isDone, IconData icon) {
+  Widget _buildRoutineItem(
+    String title,
+    String time,
+    bool isDone,
+    IconData icon,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
@@ -533,7 +560,9 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDone ? const Color(0xFF10B981).withOpacity(0.2) : const Color(0xFFF1F5F9),
+          color: isDone
+              ? const Color(0xFF10B981).withOpacity(0.2)
+              : const Color(0xFFF1F5F9),
           width: 1.5,
         ),
         boxShadow: [
@@ -541,7 +570,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
             color: Colors.black.withOpacity(0.03),
             blurRadius: 15,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -549,9 +578,9 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDone 
-                ? const Color(0xFF10B981).withOpacity(0.1) 
-                : const Color(0xFFF8FAFC),
+              color: isDone
+                  ? const Color(0xFF10B981).withOpacity(0.1)
+                  : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
@@ -570,7 +599,9 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
                   style: GoogleFonts.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: isDone ? const Color(0xFF64748B) : AppColors.textPrimary,
+                    color: isDone
+                        ? const Color(0xFF64748B)
+                        : AppColors.textPrimary,
                     decoration: isDone ? TextDecoration.lineThrough : null,
                     decorationColor: const Color(0xFF94A3B8),
                   ),
@@ -615,10 +646,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF8B5CF6),
-            const Color(0xFF6366F1),
-          ],
+          colors: [const Color(0xFF8B5CF6), const Color(0xFF6366F1)],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -635,7 +663,11 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard> with SingleTi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.lightbulb_rounded, color: Colors.white, size: 28),
+                const Icon(
+                  Icons.lightbulb_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   "Weekly Insights",

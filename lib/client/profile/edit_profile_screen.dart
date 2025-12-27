@@ -54,21 +54,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           children: [
-            // Avatar (Mock tap)
+            // Avatar
             Center(
               child: Stack(
                 children: [
                   Container(
                     width: 100,
                     height: 100,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF1F5F9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0F2FE),
                       shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      size: 50,
-                      color: AppColors.textSecondary,
+                    child: ClipOval(
+                      child: AuthStore().avatarUrl != null
+                          ? Image.network(
+                              AuthStore().avatarUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.person_rounded,
+                                size: 50,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person_rounded,
+                              size: 50,
+                              color: AppColors.primary,
+                            ),
                     ),
                   ),
                   Positioned(
@@ -76,9 +96,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
                       child: const Icon(
                         Icons.camera_alt_rounded,
