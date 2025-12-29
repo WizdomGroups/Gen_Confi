@@ -3,9 +3,11 @@ import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/layout/responsive_container.dart';
+import 'package:gen_confi/core/utils/theme_extensions.dart';
 import 'package:gen_confi/core/widgets/app_card.dart';
 import 'package:gen_confi/services/auth_store.dart';
 import 'package:gen_confi/services/onboarding_store.dart';
+import 'package:gen_confi/services/theme_store.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ClientHomeDashboard extends StatefulWidget {
@@ -60,29 +62,28 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
     return ResponsiveContainer(
       // Enable full width on mobile to avoid double padding (ResponsiveContainer padding + inner content padding)
       fullWidthMobile: true,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
           ),
-        ),
         child: Stack(
           children: [
-            // Animated background blobs
+            // Subtle gradient orbs for depth
             Positioned(
               top: -150,
               right: -100,
               child: _buildAnimatedBlob(
                 300,
-                AppColors.primary.withOpacity(0.08),
+                AppColors.gradientStart.withOpacity(0.05),
               ),
             ),
             Positioned(
               bottom: -100,
               left: -80,
-              child: _buildAnimatedBlob(250, Colors.purple.withOpacity(0.06)),
+              child: _buildAnimatedBlob(
+                250,
+                AppColors.gradientEnd.withOpacity(0.05),
+              ),
             ),
 
             SingleChildScrollView(
@@ -185,7 +186,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                 "$greeting,",
                 style: GoogleFonts.inter(
                   fontSize: 15,
-                  color: AppColors.textSecondary,
+                  color: context.themeTextSecondary,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.3,
                 ),
@@ -196,7 +197,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                 style: GoogleFonts.inter(
                   fontSize: 36,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+                  color: context.themeTextPrimary,
                   height: 1.1,
                   letterSpacing: -0.5,
                 ),
@@ -206,41 +207,39 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
         ),
         GestureDetector(
           onTap: () => widget.onNavigateToTab(3),
-          child: Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.primary.withOpacity(0.7)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
             child: Container(
               padding: const EdgeInsets.all(3),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white,
+                gradient: AppColors.primaryGradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.gradientStart.withOpacity(0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              child: CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.primary,
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : "A",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                ),
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: context.themeSurface,
+                  child: Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : "A",
+                    style: TextStyle(
+                      color: context.themeTextPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ),
       ],
     );
@@ -252,14 +251,22 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
       height: 220,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF334155)],
+          colors: [
+            context.themeSurface,
+            context.themeSurfaceElevated,
+            context.themeSurface,
+          ],
+        ),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.5),
+            color: Colors.black.withOpacity(0.5),
             blurRadius: 30,
             offset: const Offset(0, 15),
             spreadRadius: -5,
@@ -291,7 +298,12 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.gradientStart.withOpacity(0.1),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
@@ -302,7 +314,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
             child: Icon(
               Icons.camera_alt_rounded,
               size: 100,
-              color: Colors.white.withOpacity(0.08),
+              color: AppColors.gradientEnd.withOpacity(0.1),
             ),
           ),
 
@@ -323,10 +335,10 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: AppColors.gradientStart.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
+                            color: AppColors.gradientStart.withOpacity(0.3),
                           ),
                         ),
                         child: Row(
@@ -344,7 +356,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                             Text(
                               "AI POWERED",
                               style: GoogleFonts.inter(
-                                color: Colors.white,
+                                color: context.themeTextPrimary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 1.2,
@@ -357,8 +369,8 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                       Text(
                         "Get Your Complete\nGrooming Analysis",
                         style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 20, // Slightly reduced from 22
+                          color: context.themeTextPrimary,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
                           height: 1.2,
                           letterSpacing: -0.3,
@@ -368,7 +380,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                       Text(
                         "Instant AI-powered insights in seconds",
                         style: GoogleFonts.inter(
-                          color: Colors.white.withOpacity(0.7),
+                          color: context.themeTextSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -384,14 +396,14 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                       Navigator.pushNamed(context, AppRoutes.smartFaceCapture);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF0F172A),
+                      backgroundColor: context.themeSurfaceElevated,
+                      foregroundColor: context.themeTextPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                       padding: const EdgeInsets.symmetric(
                         vertical: 14,
-                      ), // Reduced from 16
+                      ),
                       elevation: 0,
                       shadowColor: Colors.transparent,
                     ),
@@ -465,12 +477,12 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.themeSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        border: Border.all(color: context.themeBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 4),
             spreadRadius: -2,
@@ -494,7 +506,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
             style: GoogleFonts.inter(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              color: context.themeTextPrimary,
               letterSpacing: -0.3,
             ),
           ),
@@ -502,7 +514,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
             title,
             style: GoogleFonts.inter(
               fontSize: 11,
-              color: AppColors.textSecondary,
+              color: context.themeTextSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -526,7 +538,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
         TextButton(
           onPressed: () {},
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.primary,
+            foregroundColor: context.themeTextPrimary,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
           child: Row(
@@ -557,17 +569,17 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.themeSurface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDone
-              ? const Color(0xFF10B981).withOpacity(0.2)
-              : const Color(0xFFF1F5F9),
+              ? AppColors.success.withOpacity(0.3)
+              : context.themeBorder,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 15,
             offset: const Offset(0, 2),
           ),
@@ -579,13 +591,13 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: isDone
-                  ? const Color(0xFF10B981).withOpacity(0.1)
-                  : const Color(0xFFF8FAFC),
+                  ? AppColors.success.withOpacity(0.2)
+                  : context.themeSurfaceElevated,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               isDone ? Icons.check_circle_rounded : icon,
-              color: isDone ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+              color: isDone ? AppColors.success : context.themeTextMuted,
               size: 24,
             ),
           ),
@@ -600,10 +612,10 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: isDone
-                        ? const Color(0xFF64748B)
-                        : AppColors.textPrimary,
+                        ? context.themeTextMuted
+                        : context.themeTextPrimary,
                     decoration: isDone ? TextDecoration.lineThrough : null,
-                    decorationColor: const Color(0xFF94A3B8),
+                    decorationColor: context.themeTextMuted,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -611,7 +623,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                   time,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: context.themeTextSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -622,15 +634,18 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                "Pending",
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Text(
+                  "Pending",
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -643,15 +658,11 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [const Color(0xFF8B5CF6), const Color(0xFF6366F1)],
-        ),
+        gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.3),
+            color: AppColors.gradientStart.withOpacity(0.4),
             blurRadius: 25,
             offset: const Offset(0, 10),
           ),

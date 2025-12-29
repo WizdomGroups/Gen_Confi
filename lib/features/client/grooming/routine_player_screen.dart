@@ -113,7 +113,7 @@ class _RoutinePlayerScreenState extends State<RoutinePlayerScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.skyBlue,
+                            color: AppColors.surfaceElevated,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/app/theme/app_theme.dart';
+import 'package:gen_confi/services/theme_store.dart';
 import 'package:gen_confi/features/auth/splash_screen.dart';
 import 'package:gen_confi/features/auth/login_screen.dart';
 import 'package:gen_confi/features/auth/signup_screen.dart';
@@ -39,11 +40,16 @@ class GenConfiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Gen Confi',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      initialRoute: AppRoutes.splash,
+    final themeStore = ThemeStore();
+    
+    return ValueListenableBuilder<bool>(
+      valueListenable: themeStore.themeNotifier,
+      builder: (context, isDarkMode, child) {
+        return MaterialApp(
+          title: 'Gen Confi',
+          debugShowCheckedModeBanner: false,
+          theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
+          initialRoute: AppRoutes.splash,
       // Simple map-based navigation for now, can be upgraded to onGenerateRoute later
       routes: {
         AppRoutes.splash: (context) => const SplashScreen(),
@@ -99,6 +105,8 @@ class GenConfiApp extends StatelessWidget {
         AppRoutes.clientGroomingAnalysis: (context) =>
             const SkinAnalysisScreen(),
         AppRoutes.smartCapture: (context) => const SmartCaptureScreen(),
+      },
+        );
       },
     );
   }

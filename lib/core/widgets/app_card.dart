@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
+import 'package:gen_confi/core/utils/theme_extensions.dart';
 
 class AppCard extends StatelessWidget {
   final Widget child;
@@ -28,18 +29,18 @@ class AppCard extends StatelessWidget {
     return Container(
       width: width,
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.surface,
+        color: backgroundColor ?? Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(
           16,
         ), // Increased for a more modern, friendly look
         border: Border.all(
-          color: borderColor ?? AppColors.border.withValues(alpha: 0.8),
+          color: borderColor ?? context.themeBorder.withOpacity(0.8),
           width: 1.5,
         ),
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: AppColors.textPrimary.withValues(alpha: 0.04),
+                  color: context.themeTextPrimary.withOpacity(0.04),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -66,10 +67,10 @@ class AppCard extends StatelessWidget {
                 if (title != null) ...[
                   Text(
                     title!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16, // Standardized for UI readability
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.themeTextPrimary,
                       letterSpacing: -0.2,
                     ),
                   ),

@@ -1,8 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
-
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gen_confi/services/auth_store.dart';
 
@@ -14,172 +14,301 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  bool _startAnimation = false;
+  late AnimationController _mainController;
+  late AnimationController _particleController;
+  late AnimationController _pulseController;
+  
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _glowAnimation;
+  
   String _displayedText = "";
-  final String _fullText1 = "GEN";
-  final String _fullText2 = "CONFI";
-  bool _showSecondWord = false;
+  final String _fullText = "GENCONFI";
+  int _currentIndex = 0;
+  Timer? _typewriterTimer;
+
+  bool get isDarkTheme => Theme.of(context).brightness == Brightness.dark;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startAnimationSequence();
-    });
+    
+    // Main animation controller
+    _mainController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    // Particle animation controller (continuous)
+    _particleController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+
+    // Pulse animation controller (continuous)
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _mainController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _mainController,
+        curve: const Interval(0.0, 0.8, curve: Curves.elasticOut),
+      ),
+    );
+
+    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _mainController,
+        curve: const Interval(0.4, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    _startAnimationSequence();
   }
 
-  void _startAnimationSequence() async {
-    // 1. Initial Delay
-    await Future.delayed(const Duration(milliseconds: 500));
+  Future<void> _startAnimationSequence() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
     if (!mounted) return;
-    setState(() => _startAnimation = true);
-
-    // 2. Typewriter Effect for "GEN"
-    for (int i = 0; i < _fullText1.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (!mounted) return;
-      setState(() {
-        _displayedText = _fullText1.substring(0, i + 1);
-      });
-    }
-
-    // 3. Pause
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    // 4. Typewriter Effect for "CONFI" (New line or next to it)
-    // We will render them separately to control layout, but animate state
-    setState(() => _showSecondWord = true); 
     
-    // 5. Total wait time to match 6 seconds (approx)
-    // We have consumed ~1s so far. Wait ~4.5s more.
-    await Future.delayed(const Duration(seconds: 4, milliseconds: 500));
+    // Start main animations
+    _mainController.forward();
     
-    if (mounted) {
-      if (AuthStore().isLoggedIn) {
-        Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
-      } else {
-        // Not Logged In -> Go to Login
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
+    // Start typewriter effect
+    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 150), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
       }
+      
+      if (_currentIndex < _fullText.length) {
+        setState(() {
+          _currentIndex++;
+          _displayedText = _fullText.substring(0, _currentIndex);
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+
+    // Wait and navigate
+    await Future.delayed(const Duration(milliseconds: 3500));
+
+    if (!mounted) return;
+    
+    if (AuthStore().isLoggedIn) {
+      Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
+    } else {
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
   }
 
   @override
+  void dispose() {
+    _typewriterTimer?.cancel();
+    _mainController.dispose();
+    _particleController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final backgroundColor = isDarkTheme ? Colors.black : Colors.white;
+    final textColor = isDarkTheme ? Colors.white : Colors.black;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       body: Stack(
-        fit: StackFit.expand,
         children: [
-          // 1. Cinematic Background Image with Zoom Effect
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 1.0, end: 1.15),
-            duration: const Duration(
-              seconds: 6, 
-            ), 
-            builder: (context, scale, child) {
-              return Transform.scale(
-                scale: scale,
-                child: AnimatedOpacity(
-                  opacity: _startAnimation ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 2000),
-                  curve: Curves.easeInOut,
-                  child: Image.asset(
-                    'assets/images/splash.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        Container(color: Colors.black),
+          // Animated gradient particles background
+          AnimatedBuilder(
+            animation: _particleController,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: ParticlePainter(
+                  animation: _particleController.value,
+                  isDark: isDarkTheme,
+                ),
+                size: Size.infinite,
+              );
+            },
+          ),
+
+          // Radial gradient glow effect
+          AnimatedBuilder(
+            animation: _glowAnimation,
+            builder: (context, child) {
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 0.8,
+                    colors: [
+                      AppColors.gradientStart.withOpacity(0.15 * _glowAnimation.value),
+                      backgroundColor.withOpacity(0.0),
+                    ],
                   ),
                 ),
               );
             },
           ),
 
-          // 2. Professional Dual-Branded Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.6), 
-                  Colors.transparent,
-                  Colors.transparent,
-                  AppColors.primary.withValues(
-                    alpha: 0.9,
-                  ), 
-                ],
-                stops: const [0.0, 0.3, 0.6, 1.0],
-              ),
+          // Main content
+          Center(
+            child: AnimatedBuilder(
+              animation: _mainController,
+              builder: (context, child) {
+                return FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Pulsing gradient circle behind text
+                        AnimatedBuilder(
+                          animation: _pulseController,
+                          builder: (context, child) {
+                            final pulseScale = 1.0 + (_pulseController.value * 0.1);
+                            return Transform.scale(
+                              scale: pulseScale,
+                              child: Container(
+                                width: 220,
+                                height: 220,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      AppColors.gradientStart.withOpacity(0.2),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                        // Logo text with typewriter effect
+                        Transform.translate(
+                          offset: const Offset(0, -110),
+                          child: Column(
+                            children: [
+                              // Main text with gradient and glow
+                              Stack(
+                                children: [
+                                  // Glow effect
+                                  ShaderMask(
+                                    shaderCallback: (bounds) {
+                                      return AppColors.primaryGradient.createShader(
+                                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                                      );
+                                    },
+                                    child: Text(
+                                      _displayedText,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 56,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        letterSpacing: 2.0,
+                                        shadows: [
+                                          Shadow(
+                                            color: AppColors.gradientStart.withOpacity(0.5 * _glowAnimation.value),
+                                            blurRadius: 30,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // Animated gradient underline
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 500),
+                                width: _displayedText.length * 6.0,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  borderRadius: BorderRadius.circular(2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.gradientStart.withOpacity(0.5),
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 32),
+
+                              // Tagline with fade-in
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 800),
+                                opacity: _currentIndex >= _fullText.length ? 1.0 : 0.0,
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'YOUR PERSONAL STYLIST &',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: textColor.withOpacity(0.7),
+                                        letterSpacing: 2.0,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'GROOMING PARTNER',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: textColor.withOpacity(0.7),
+                                        letterSpacing: 2.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
-          // 3. Content Overlay
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // "GEN"
-                      Text(
-                        _displayedText,
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 64,
-                          height: 0.9,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: -1.0,
-                        ),
-                      ),
-                      // "CONFI" - Typewrites in
-                      if (_showSecondWord)
-                         _TypewriterText(
-                           text: _fullText2, 
-                           style: GoogleFonts.playfairDisplay(
-                              fontSize: 64,
-                              height: 0.9,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: -1.0,
-                            ),
-                            startDelay: const Duration(milliseconds: 100),
-                         ),
-                      
-                      const SizedBox(height: 24),
-                      // Premium Accent Line
-                      AnimatedContainer(
-                        duration: const Duration(seconds: 1),
-                        width: _startAnimation ? 40 : 0,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      AnimatedOpacity(
-                        duration: const Duration(seconds: 2),
-                        opacity: _showSecondWord ? 1.0 : 0.0,
-                        child: Text(
-                          'YOUR PERSONAL STYLIST &\nGROOMING PARTNER',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 2.0, 
-                          ),
-                        ),
-                      ),
-                    ],
+          // Shimmer effect overlay
+          AnimatedBuilder(
+            animation: _particleController,
+            builder: (context, child) {
+              return Opacity(
+                opacity: 0.3 * _glowAnimation.value,
+                child: CustomPaint(
+                  painter: ShimmerPainter(
+                    animation: _particleController.value,
+                    isDark: isDarkTheme,
                   ),
-                ],
-              ),
-            ),
+                  size: Size.infinite,
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -187,42 +316,67 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 }
 
-class _TypewriterText extends StatefulWidget {
-  final String text;
-  final TextStyle style;
-  final Duration startDelay;
+// Particle animation painter
+class ParticlePainter extends CustomPainter {
+  final double animation;
+  final bool isDark;
 
-  const _TypewriterText({required this.text, required this.style, this.startDelay = Duration.zero});
-
-  @override
-  State<_TypewriterText> createState() => _TypewriterTextState();
-}
-
-class _TypewriterTextState extends State<_TypewriterText> {
-  String _currentText = "";
+  ParticlePainter({required this.animation, required this.isDark});
 
   @override
-  void initState() {
-    super.initState();
-    _startTyping();
-  }
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
 
-  void _startTyping() async {
-    await Future.delayed(widget.startDelay);
-    for (int i = 0; i < widget.text.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (!mounted) return;
-      setState(() {
-        _currentText = widget.text.substring(0, i + 1);
-      });
+    // Create floating particles
+    for (int i = 0; i < 20; i++) {
+      final seed = i * 123.456;
+      final x = (math.sin(seed + animation * 2 * math.pi) * 0.3 + 0.5) * size.width;
+      final y = ((seed % 1000) / 1000 + animation) % 1.0 * size.height;
+      final radius = 2.0 + (seed % 3);
+      
+      final colors = [
+        const Color(0xFF833AB4),
+        const Color(0xFFFD1D1D),
+        const Color(0xFFF77737),
+      ];
+      
+      paint.color = colors[i % 3].withOpacity(0.15);
+      canvas.drawCircle(Offset(x, y), radius, paint);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Text(
-      _currentText,
-      style: widget.style,
-    );
+  bool shouldRepaint(ParticlePainter oldDelegate) => true;
+}
+
+// Shimmer effect painter
+class ShimmerPainter extends CustomPainter {
+  final double animation;
+  final bool isDark;
+
+  ShimmerPainter({required this.animation, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.transparent,
+          (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+          Colors.transparent,
+        ],
+        stops: [
+          animation - 0.3,
+          animation,
+          animation + 0.3,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
   }
+
+  @override
+  bool shouldRepaint(ShimmerPainter oldDelegate) => true;
 }

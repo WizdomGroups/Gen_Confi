@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
+import 'package:gen_confi/core/constants/app_colors.dart';
+import 'package:gen_confi/core/utils/theme_extensions.dart';
+import 'package:gen_confi/core/widgets/gradient_button.dart';
 import 'package:gen_confi/services/auth_store.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -131,10 +135,26 @@ class _SignupScreenState extends State<SignupScreen>
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D9488), // Teal-600
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Decorative circles
+          // Theme-aware background with subtle gradient
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    context.themeBackground,
+                    context.themeSurface,
+                    context.themeBackground,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Subtle decorative gradient orbs
           Positioned(
             top: -80,
             right: -80,
@@ -143,31 +163,29 @@ class _SignupScreenState extends State<SignupScreen>
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 120,
-            left: -60,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.gradientStart.withOpacity(0.1),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
           Positioned(
             bottom: 100,
-            right: -40,
+            left: -40,
             child: Container(
               width: 140,
               height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.gradientEnd.withOpacity(0.1),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
@@ -192,9 +210,9 @@ class _SignupScreenState extends State<SignupScreen>
                                 alignment: Alignment.centerLeft,
                                 child: IconButton(
                                   onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.arrow_back_ios_new_rounded,
-                                    color: Colors.white,
+                                    color: context.themeTextPrimary,
                                     size: 20,
                                   ),
                                 ),
@@ -203,26 +221,19 @@ class _SignupScreenState extends State<SignupScreen>
                           const Spacer(),
                           Text(
                             'Create Account',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               fontSize: keyboardVisible ? 24 : 32,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              color: context.themeTextPrimary,
                               letterSpacing: -0.5,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  offset: const Offset(0, 2),
-                                  blurRadius: 4,
-                                ),
-                              ],
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Sign up to get started',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               fontSize: 15,
-                              color: Colors.white.withOpacity(0.9),
+                              color: context.themeTextSecondary,
                               fontWeight: FontWeight.w500,
                               letterSpacing: 0.3,
                             ),
@@ -241,17 +252,17 @@ class _SignupScreenState extends State<SignupScreen>
                     position: _slideAnimation,
                     child: Container(
                       width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
+                      decoration: BoxDecoration(
+                        color: context.themeSurface,
+                        borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(40),
                           topRight: Radius.circular(40),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0x1A000000),
+                            color: Colors.black.withOpacity(0.3),
                             blurRadius: 30,
-                            offset: Offset(0, -10),
+                            offset: const Offset(0, -10),
                           ),
                         ],
                       ),
@@ -267,41 +278,45 @@ class _SignupScreenState extends State<SignupScreen>
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // Name Field
-                              _buildLabel('Name'),
+                              _buildLabel('Name', context),
                               const SizedBox(height: 8),
                               _buildTextField(
                                 controller: _nameController,
                                 hint: 'John Williams',
+                                context: context,
                               ),
                               const SizedBox(height: 20),
 
                               // Email Field
-                              _buildLabel('Email'),
+                              _buildLabel('Email', context),
                               const SizedBox(height: 8),
                               _buildTextField(
                                 controller: _emailController,
                                 hint: 'johnwilliams@gmail.com',
                                 keyboardType: TextInputType.emailAddress,
+                                context: context,
                               ),
                               const SizedBox(height: 20),
 
                               // Phone Field
-                              _buildLabel('Phone'),
+                              _buildLabel('Phone', context),
                               const SizedBox(height: 8),
                               _buildTextField(
                                 controller: _phoneController,
                                 hint: '+1 234 567 8900',
                                 keyboardType: TextInputType.phone,
+                                context: context,
                               ),
                               const SizedBox(height: 20),
 
                               // Password Field
-                              _buildLabel('Password'),
+                              _buildLabel('Password', context),
                               const SizedBox(height: 8),
                               _buildTextField(
                                 controller: _passwordController,
                                 hint: '••••••••',
                                 isPassword: true,
+                                context: context,
                               ),
 
                               const SizedBox(height: 28),
@@ -326,9 +341,9 @@ class _SignupScreenState extends State<SignupScreen>
                                     ),
                                     child: Text(
                                       'or continue with',
-                                      style: TextStyle(
+                                      style: GoogleFonts.inter(
                                         fontSize: 13,
-                                        color: const Color(0xFF94A3B8),
+                                        color: context.themeTextMuted,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -336,7 +351,7 @@ class _SignupScreenState extends State<SignupScreen>
                                   Expanded(
                                     child: Container(
                                       height: 1,
-                                      color: const Color(0xFFE2E8F0),
+                                      color: context.themeBorder,
                                     ),
                                   ),
                                 ],
@@ -370,23 +385,28 @@ class _SignupScreenState extends State<SignupScreen>
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Text(
+                                  Text(
                                     "Already have an account? ",
-                                    style: TextStyle(
-                                      color: Color(0xFF64748B),
+                                    style: GoogleFonts.inter(
+                                      color: context.themeTextSecondary,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   GestureDetector(
                                     onTap: () => Navigator.pop(context),
-                                    child: const Text(
-                                      'LOG IN',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF0D9488),
-                                        fontSize: 14,
-                                        letterSpacing: 0.5,
+                                    child: ShaderMask(
+                                      shaderCallback: (bounds) => AppColors.primaryGradient.createShader(
+                                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                                      ),
+                                      child: Text(
+                                        'LOG IN',
+                                        style: GoogleFonts.inter(
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -407,13 +427,13 @@ class _SignupScreenState extends State<SignupScreen>
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: GoogleFonts.inter(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: Color(0xFF334155),
+        color: context.themeTextPrimary,
         letterSpacing: 0.3,
       ),
     );
@@ -422,29 +442,30 @@ class _SignupScreenState extends State<SignupScreen>
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
+    required BuildContext context,
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: context.themeSurfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        border: Border.all(color: context.themeBorder, width: 1),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
         keyboardType: keyboardType,
-        style: const TextStyle(
+        style: GoogleFonts.inter(
           fontSize: 15,
           fontWeight: FontWeight.w500,
-          color: Color(0xFF1E293B),
+          color: context.themeTextPrimary,
         ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(
+          hintStyle: GoogleFonts.inter(
             fontSize: 14,
-            color: const Color(0xFF94A3B8),
+            color: context.themeTextMuted,
             fontWeight: FontWeight.w400,
           ),
           border: InputBorder.none,
@@ -458,7 +479,7 @@ class _SignupScreenState extends State<SignupScreen>
                     _obscurePassword
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
-                    color: const Color(0xFF94A3B8),
+                    color: context.themeTextMuted,
                     size: 20,
                   ),
                   onPressed: () {
@@ -472,50 +493,11 @@ class _SignupScreenState extends State<SignupScreen>
   }
 
   Widget _buildSignupButton() {
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF14B8A6), Color(0xFF0D9488)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0D9488).withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _isLoading ? null : _handleSignup,
-          borderRadius: BorderRadius.circular(16),
-          child: Center(
-            child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Text(
-                    'SIGN UP',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-          ),
-        ),
-      ),
+    return GradientButton(
+      text: 'SIGN UP',
+      onPressed: _isLoading ? null : _handleSignup,
+      isLoading: _isLoading,
+      icon: Icons.person_add_rounded,
     );
   }
 }
@@ -537,12 +519,12 @@ class _SocialButton extends StatelessWidget {
       child: Container(
         height: 54,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.themeSurfaceElevated,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+          border: Border.all(color: context.themeBorder, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -561,9 +543,9 @@ class _SocialButton extends StatelessWidget {
                   height: 24,
                   width: 24,
                   errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
+                    return Icon(
                       Icons.error_outline,
-                      color: Colors.grey,
+                      color: context.themeTextMuted,
                       size: 24,
                     );
                   },
@@ -571,10 +553,10 @@ class _SocialButton extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF334155),
+                    color: context.themeTextPrimary,
                     letterSpacing: 0.2,
                   ),
                 ),

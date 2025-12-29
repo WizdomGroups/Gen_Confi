@@ -156,7 +156,7 @@ class _GroomingHubScreenState extends State<GroomingHubScreen> {
               ),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.skyBlue,
+                  color: AppColors.surfaceElevated,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 padding: const EdgeInsets.all(4),

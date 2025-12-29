@@ -4,9 +4,11 @@ import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/layout/base_scaffold.dart';
+import 'package:gen_confi/core/utils/theme_extensions.dart';
 import 'package:gen_confi/core/widgets/app_card.dart';
 import 'package:gen_confi/services/auth_store.dart';
 import 'package:gen_confi/services/onboarding_store.dart';
+import 'package:gen_confi/services/theme_store.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -43,39 +45,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: _buildSection(
-                    title: "My Style & Grooming",
-                    children: [
-                      _buildListTile(
-                        context,
-                        icon: Icons.face_retouching_natural_rounded,
-                        title: "Style & Grooming Details",
-                        subtitle: "Body type, skin goals, and preferences",
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          AppRoutes.clientProfileStyleDetails,
-                        ),
-                      ),
-                      _buildListTile(
-                        context,
-                        icon: Icons.bookmark_border_rounded,
-                        title: "Saved Grooming Styles",
-                        onTap: () => _showComingSoon(context),
-                      ),
-                      _buildListTile(
-                        context,
-                        icon: Icons.camera_front_rounded,
-                        title: "My Looks",
-                        subtitle: "History of your face scans",
-                        onTap: () => _showComingSoon(context),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _buildSection(
                     title: "Account",
                     children: [
                       _buildListTile(
@@ -90,6 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: "Change Password",
                         onTap: () => _showComingSoon(context),
                       ),
+                      _buildThemeToggle(context),
                       _buildListTile(
                         context,
                         icon: Icons.logout_rounded,
@@ -150,12 +120,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 110,
               height: 110,
               decoration: BoxDecoration(
-                color: const Color(0xFFE0F2FE),
+                color: AppColors.surface,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
-                boxShadow: [
+                border: Border.all(color: AppColors.border, width: 4),
+                  boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withOpacity(0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -183,9 +153,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    gradient: AppColors.primaryGradient,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: AppColors.background, width: 2),
                   ),
                   child: const Icon(
                     Icons.edit_rounded,
@@ -205,9 +175,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.deepPurpleAccent,
+                    gradient: AppColors.primaryGradient,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: AppColors.background, width: 2),
                   ),
                   child: const Icon(
                     Icons.emoji_emotions_rounded,
@@ -222,10 +192,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 16),
         Text(
           userName,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: context.themeTextPrimary,
           ),
         ),
         // Removed "Client" label container as per user request
@@ -298,9 +268,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isScrollControlled: true,
       builder: (ctx) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           height: MediaQuery.of(context).size.height * 0.6, // Taller sheet
@@ -314,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 40,
                   margin: const EdgeInsets.only(bottom: 24),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -369,9 +339,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Expanded(
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: AppColors.background,
+                                  color: AppColors.surfaceElevated,
                                   border: Border.all(
-                                    color: AppColors.primary.withOpacity(0.3),
+                                    color: AppColors.primary.withOpacity(0.5),
                                     width: 1,
                                   ),
                                   shape: BoxShape.circle,
@@ -438,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ],
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: AppColors.border,
                                   width: 2,
                                 ),
                               ),
@@ -451,27 +421,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         if (loadingProgress == null)
                                           return child;
                                         return Container(
-                                          color: Colors.grey[100],
+                                          color: AppColors.surfaceElevated,
                                           child: const Center(
                                             child: SizedBox(
                                               width: 20,
                                               height: 20,
                                               child: CircularProgressIndicator(
                                                 strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                                               ),
                                             ),
                                           ),
                                         );
                                       },
-                                  errorBuilder: (_, __, ___) => Container(
-                                    color: Colors.grey[200],
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.error_outline,
-                                        color: Colors.grey,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: AppColors.surfaceElevated,
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.error_outline,
+                                            color: AppColors.textMuted,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
                                 ),
                               ),
                             ),
@@ -513,16 +484,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: context.themeTextPrimary,
             ),
           ),
         ),
         AppCard(
           padding: EdgeInsets.zero,
-          backgroundColor: Colors.white,
+          backgroundColor: context.themeSurface,
           child: Column(
             children: children.asMap().entries.map((entry) {
               final index = entry.key;
@@ -579,16 +550,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: titleColor ?? AppColors.textPrimary,
+                      color: titleColor ?? context.themeTextPrimary,
                     ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: context.themeTextSecondary,
                       ),
                     ),
                   ],
@@ -598,9 +569,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (trailingText != null)
               Text(
                 trailingText,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: context.themeTextSecondary,
                 ),
               )
             else if (onTap != null)
@@ -612,6 +583,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildThemeToggle(BuildContext context) {
+    final themeStore = ThemeStore();
+    
+    return ValueListenableBuilder<bool>(
+      valueListenable: themeStore.themeNotifier,
+      builder: (context, isDarkMode, child) {
+        return InkWell(
+          onTap: () {
+            themeStore.toggleTheme();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: (AppColors.primary).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Theme",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: context.themeTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isDarkMode ? "Dark Mode" : "Light Mode",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.themeTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: isDarkMode,
+                  onChanged: (value) {
+                    themeStore.setTheme(value);
+                  },
+                  activeColor: AppColors.primary,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

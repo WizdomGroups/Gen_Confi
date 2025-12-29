@@ -48,7 +48,7 @@ class _ClientShellState extends State<ClientShell> {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: IndexedStack(
         index: _currentIndex,
         children: pages,
@@ -58,7 +58,7 @@ class _ClientShellState extends State<ClientShell> {
           color: AppColors.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(0.3),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -68,9 +68,9 @@ class _ClientShellState extends State<ClientShell> {
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: _onTabTapped,
-            backgroundColor: AppColors.surface,
-            selectedItemColor: AppColors.primary,
-            unselectedItemColor: AppColors.textSecondary.withOpacity(0.6),
+            backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+            selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
+            unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
             type: BottomNavigationBarType.fixed,
             elevation: 0,
             showSelectedLabels: true,
