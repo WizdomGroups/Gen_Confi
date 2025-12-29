@@ -79,7 +79,7 @@ class _SignupScreenState extends State<SignupScreen>
     if (!mounted) return;
 
     if (_selectedRole == UserRole.client) {
-      Navigator.pushNamed(context, AppRoutes.genderModeSelection);
+      Navigator.pushNamed(context, AppRoutes.chatOnboarding);
     } else {
       Navigator.pushNamed(context, AppRoutes.expertOnboarding);
     }

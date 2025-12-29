@@ -4,6 +4,7 @@ class AppRoutes {
   static const String signup = '/signup';
   static const String roleSelection = '/role_selection';
 
+  static const String chatOnboarding = '/onboarding/chat';
   static const String genderModeSelection = '/onboarding/gender_mode';
   static const String bodyTypeSelection = '/client/onboarding/body-type';
   static const String clientOnboardingStylePreferences =

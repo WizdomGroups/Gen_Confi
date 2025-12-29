@@ -47,6 +47,22 @@ class QualityMeta {
     );
   }
 
+  Map<String, dynamic> toMap() {
+    return {
+      'hasFace': hasFace,
+      'faceCount': faceCount,
+      'faceCenterDx': faceCenterDx,
+      'faceCenterDy': faceCenterDy,
+      'faceAreaRatio': faceAreaRatio,
+      'yawDeg': yawDeg,
+      'pitchDeg': pitchDeg,
+      'rollDeg': rollDeg,
+      'brightness': brightness,
+      'sharpness': sharpness,
+      'reasons': reasons,
+    };
+  }
+
   @override
   String toString() {
     return 'QualityMeta(face: $hasFace, count: $faceCount, center: ($faceCenterDx, $faceCenterDy), area: $faceAreaRatio, pose: ($yawDeg, $pitchDeg, $rollDeg), reasons: $reasons)';
@@ -56,13 +72,23 @@ class QualityMeta {
 class CaptureResult {
   final String imagePath;
   final QualityMeta meta;
+  final List<Map<String, double>> landmarks; // x, y, z normalized
 
-  const CaptureResult({required this.imagePath, required this.meta});
+  const CaptureResult({
+    required this.imagePath,
+    required this.meta,
+    this.landmarks = const [],
+  });
 
   factory CaptureResult.fromMap(Map<dynamic, dynamic> map) {
     return CaptureResult(
       imagePath: map['imagePath'] as String? ?? '',
       meta: QualityMeta.fromMap(map['meta'] as Map<dynamic, dynamic>? ?? {}),
+      landmarks:
+          (map['landmarks'] as List<dynamic>?)
+              ?.map((e) => Map<String, double>.from(e as Map))
+              .toList() ??
+          [],
     );
   }
 }

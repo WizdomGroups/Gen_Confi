@@ -43,12 +43,6 @@ flutter {
     source = "../.."
 }
 
-dependencies {
-    val camera_version = "1.3.1"
-    implementation("androidx.camera:camera-core:$camera_version")
-    implementation("androidx.camera:camera-camera2:$camera_version")
-    implementation("androidx.camera:camera-lifecycle:$camera_version")
-    implementation("androidx.camera:camera-view:$camera_version")
-    // implementation("com.google.mediapipe:tasks-vision:0.10.9") // Removing MediaPipe
-    implementation("com.google.mlkit:face-detection:16.1.6") // Adding ML Kit (Bundled)
-}
+// dependencies {
+//     // Native dependencies removed as smart capture pipeline is deleted.
+// }

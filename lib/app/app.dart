@@ -8,12 +8,13 @@ import 'package:gen_confi/features/auth/role_selector.dart';
 // import 'package:gen_confi/features/admin/dashboard/admin_dashboard.dart'; // Legacy removed
 // import 'package:gen_confi/features/expert/dashboard/expert_dashboard.dart'; // Legacy removed
 import 'package:gen_confi/features/client/onboarding/gender_mode_screen.dart';
+import 'package:gen_confi/features/onboarding/chat_onboarding_screen.dart';
 import 'package:gen_confi/client/onboarding/body_type/body_type_screen.dart';
 import 'package:gen_confi/client/onboarding/style_preferences/style_preferences_screen.dart';
 import 'package:gen_confi/client/onboarding/grooming_profile/grooming_profile_screen.dart';
 import 'package:gen_confi/client/onboarding/finish/finish_screen.dart';
 import 'package:gen_confi/client/onboarding/selfie/smart_selfie_screen.dart';
-import 'package:gen_confi/features/smart_capture/ui/smart_face_capture_screen.dart';
+import 'package:gen_confi/features/smart_capture/smart_capture_screen.dart';
 import 'package:gen_confi/client/onboarding/user_type/user_type_screen.dart';
 import 'package:gen_confi/client/onboarding/goal/goal_selection_screen.dart';
 
@@ -50,6 +51,7 @@ class GenConfiApp extends StatelessWidget {
         AppRoutes.signup: (context) => const SignupScreen(),
         AppRoutes.roleSelection: (context) => const RoleSelectorScreen(),
 
+        AppRoutes.chatOnboarding: (context) => const ChatOnboardingScreen(),
         AppRoutes.genderModeSelection: (context) => const GenderModeScreen(),
         AppRoutes.bodyTypeSelection: (context) => const BodyTypeScreen(),
         AppRoutes.clientOnboardingStylePreferences: (context) =>
@@ -64,7 +66,7 @@ class GenConfiApp extends StatelessWidget {
         AppRoutes.onboardingGoal: (context) => const GoalSelectionScreen(),
         
         // Smart Capture
-        AppRoutes.smartFaceCapture: (context) => const SmartFaceCaptureScreen(),
+        AppRoutes.smartFaceCapture: (context) => const SmartCaptureScreen(),
 
         AppRoutes.clientOnboardingFinish: (context) => const FinishScreen(),
         AppRoutes.clientShell: (context) => const ClientShell(),
@@ -96,7 +98,7 @@ class GenConfiApp extends StatelessWidget {
             const GroomingHistoryScreen(),
         AppRoutes.clientGroomingAnalysis: (context) =>
             const SkinAnalysisScreen(),
-        AppRoutes.smartCapture: (context) => const SmartFaceCaptureScreen(),
+        AppRoutes.smartCapture: (context) => const SmartCaptureScreen(),
       },
     );
   }

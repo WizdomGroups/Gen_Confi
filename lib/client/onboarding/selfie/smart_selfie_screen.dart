@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gen_confi/features/smart_capture/smart_capture_screen.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/constants/app_spacing.dart';
@@ -109,10 +110,19 @@ class SmartSelfieScreen extends StatelessWidget {
 
             AppButton(
               text: "Take Selfie",
-              onPressed: () {
-                // Navigate to next step (User Type) for now to keep flow moving
-                // In real app, this would open camera or utilize SmartFaceCapture logic
-                Navigator.pushNamed(context, AppRoutes.onboardingUserType);
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SmartCaptureScreen()),
+                );
+
+                if (result != null && result is String) {
+                  debugPrint("Captured Selfie Path: $result");
+                  // Proceed with the captured image
+                  if (context.mounted) {
+                     Navigator.pushNamed(context, AppRoutes.onboardingUserType);
+                  }
+                }
               },
               style: AppButtonStyle.primary,
               icon: Icons.camera_alt_rounded,
