@@ -53,8 +53,8 @@ class GenConfiApp extends StatelessWidget {
       // Simple map-based navigation for now, can be upgraded to onGenerateRoute later
       routes: {
         AppRoutes.splash: (context) => const SplashScreen(),
-        AppRoutes.login: (context) => const LoginScreen(),
-        AppRoutes.signup: (context) => const SignupScreen(),
+        AppRoutes.login: (context) => const PremiumLoginScreen(),
+        AppRoutes.signup: (context) => const PremiumSignupScreen(),
         AppRoutes.roleSelection: (context) => const RoleSelectorScreen(),
 
         AppRoutes.chatOnboarding: (context) => const ChatOnboardingScreen(),

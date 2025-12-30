@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'logic/face_capture_logic.dart';
 import 'widgets/smart_capture_overlay.dart';
 import 'preview_screen.dart';
+import 'domain/capture_thresholds.dart';
 
 class SmartCaptureScreen extends StatefulWidget {
   final Function(String path)? onCaptureComplete;
@@ -29,10 +30,9 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
   String _instruction = "Initializing...";
   bool _isStable = false;
   Timer? _stabilityTimer;
-  static const int _requiredStabilityMs = 800; // 800ms
-  
-  // Layout
-  double _overlayHeight = 0; // For ensuring text is clear
+  Rect? _currentFaceRect;
+  FacePositionInfo? _positionInfo;
+  List<Offset>? _landmarks;
 
   @override
   void initState() {
@@ -128,39 +128,78 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
 
     try {
       final camera = _controller!.description;
-      final orientation = _controller!.value.deviceOrientation; // Orientation of device
+      final orientation = _controller!.value.deviceOrientation;
       
       final result = await _logic!.analyze(image, camera, orientation);
       
       if (!mounted) return;
 
-      // Update State / Logic
-      if (result.status == CaptureStatus.ready) {
-        if (!_isStable) {
-          // Just became stable
-          setState(() {
-             _isStable = true;
-             _instruction = result.instruction; 
-          });
-          _startStabilityTimer();
-        }
-      } else {
-        // Not stable/ready
-        if (_isStable) {
-          _resetStabilityTimer();
-          setState(() {
-            _isStable = false;
-            _instruction = result.instruction;
-          });
-        } else {
-           // Just update text if changed significantly (throttle UI updates?)
-           // For now, always update (Flutter is fast enough for text)
-           if (_instruction != result.instruction) {
-             setState(() {
+      // Always update UI with latest result for active tracking
+      // Only skip updates if it's a "scanning" message and we already have face data
+      bool shouldUpdate = true;
+      if (result.status == CaptureStatus.noFace && 
+          result.instruction.contains("Scanning") && 
+          _currentFaceRect != null) {
+        // Don't overwrite good tracking with scanning message
+        shouldUpdate = false;
+      }
+
+      if (shouldUpdate) {
+        // Update State / Logic
+        if (result.status == CaptureStatus.ready) {
+          if (!_isStable) {
+            // Just became stable - start timer
+            setState(() {
+               _isStable = true;
                _instruction = result.instruction;
-             });
-           }
+               _currentFaceRect = result.faceRect;
+               _positionInfo = result.positionInfo;
+               _landmarks = result.landmarks;
+            });
+            _startStabilityTimer();
+          } else {
+            // Update while stable - keep face rect updated but don't reset timer
+            // This allows timer to continue even with minor updates
+            setState(() {
+              _instruction = result.instruction;
+              _currentFaceRect = result.faceRect;
+              _positionInfo = result.positionInfo;
+              _landmarks = result.landmarks;
+            });
+            // Restart timer if it was cancelled (safety check)
+            if (_stabilityTimer == null || !_stabilityTimer!.isActive) {
+              _startStabilityTimer();
+            }
+          }
+        } else {
+          // Not stable/ready - only reset if status changed significantly
+          // Allow brief interruptions without resetting timer
+          if (_isStable && result.status != CaptureStatus.moving) {
+            // Only reset for significant issues, not minor movements
+            _resetStabilityTimer();
+            setState(() {
+              _isStable = false;
+              _instruction = result.instruction;
+              _currentFaceRect = result.faceRect;
+              _positionInfo = result.positionInfo;
+              _landmarks = result.landmarks;
+            });
+          } else if (!_isStable) {
+            // Always update to show active guidance
+            setState(() {
+              _instruction = result.instruction;
+              _currentFaceRect = result.faceRect;
+              _positionInfo = result.positionInfo;
+              _landmarks = result.landmarks;
+            });
+          }
         }
+      } else if (result.faceRect != null) {
+        // Update face rect even if we skip instruction update
+        setState(() {
+          _currentFaceRect = result.faceRect;
+          _landmarks = result.landmarks;
+        });
       }
     } catch (e) {
       debugPrint("Analysis error: $e");
@@ -171,7 +210,10 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
 
   void _startStabilityTimer() {
     _stabilityTimer?.cancel();
-    _stabilityTimer = Timer(const Duration(milliseconds: _requiredStabilityMs), _capturePhoto);
+    _stabilityTimer = Timer(
+      const Duration(milliseconds: CaptureThresholds.stableDurationMs), 
+      _capturePhoto
+    );
   }
 
   void _resetStabilityTimer() {
@@ -227,6 +269,8 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
         setState(() {
           _isStable = false;
           _instruction = "Position your face in the frame";
+          _currentFaceRect = null;
+          _positionInfo = null;
         });
       }
       
@@ -275,6 +319,10 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
           SmartCaptureOverlay(
             instruction: _instruction,
             isReady: _isStable,
+            faceRect: _currentFaceRect,
+            imageSize: _controller!.value.previewSize ?? const Size(720, 1280),
+            positionInfo: _positionInfo,
+            landmarks: _landmarks,
           ),
           
           // Back Button

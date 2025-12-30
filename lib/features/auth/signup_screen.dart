@@ -1,420 +1,193 @@
 import 'package:flutter/material.dart';
-import 'package:gen_confi/app/routes/app_routes.dart';
-import 'package:gen_confi/core/constants/app_colors.dart';
-import 'package:gen_confi/core/utils/theme_extensions.dart';
-import 'package:gen_confi/core/widgets/gradient_button.dart';
-import 'package:gen_confi/services/auth_store.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'dart:ui';
+import 'package:gen_confi/app/routes/app_routes.dart';
 
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
-
-  @override
-  State<SignupScreen> createState() => _SignupScreenState();
+class InstagramColors {
+  static const Color pureBlack = Color(0xFF000000);
+  static const Color cardDark = Color(0xFF161616);
+  static const Color borderDark = Color(0xFF262626);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFFAAAAAA);
+  static const Color textMuted = Color(0xFF666666);
+  
+  static const Color gradientPurple = Color(0xFF833AB4);
+  static const Color gradientRed = Color(0xFFFD1D1D);
+  static const Color gradientOrange = Color(0xFFF77737);
+  
+  static const LinearGradient instagramGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [gradientPurple, gradientRed, gradientOrange],
+  );
 }
 
-class _SignupScreenState extends State<SignupScreen>
-    with SingleTickerProviderStateMixin {
+class PremiumSignupScreen extends StatefulWidget {
+  const PremiumSignupScreen({super.key});
+
+  @override
+  State<PremiumSignupScreen> createState() => _PremiumSignupScreenState();
+}
+
+class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  UserRole _selectedRole = UserRole.client;
   bool _isLoading = false;
   bool _obscurePassword = true;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _animationController,
-            curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
-          ),
-        );
-
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  void _handleSignup() async {
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final phone = _phoneController.text.trim();
-    final password = _passwordController.text;
-
-    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
-      _showSnackBar("Please fill in all fields", isError: true);
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    AuthStore().signup(email, password, _selectedRole);
-
-    setState(() => _isLoading = false);
-    if (!mounted) return;
-
-    if (_selectedRole == UserRole.client) {
-      Navigator.pushNamed(context, AppRoutes.chatOnboarding);
-    } else {
-      Navigator.pushNamed(context, AppRoutes.expertOnboarding);
-    }
-  }
-
-  void _handleSocialSignup(String provider) async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    _showSnackBar("$provider signup in progress...", isError: false);
-
-    setState(() => _isLoading = false);
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              isError ? Icons.error_outline : Icons.check_circle_outline,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: isError
-            ? const Color(0xFFE53E3E)
-            : const Color(0xFF38A169),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
-    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
-
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: InstagramColors.pureBlack,
+      resizeToAvoidBottomInset: true, // Allow resize for form input
       body: Stack(
         children: [
-          // Theme-aware background with subtle gradient
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    context.themeBackground,
-                    context.themeSurface,
-                    context.themeBackground,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Subtle decorative gradient orbs
+          // 1. Premium Background Aura (Top Left for Sign Up to distinguish from Login)
           Positioned(
-            top: -80,
-            right: -80,
+            top: -100,
+            left: -100,
             child: Container(
-              width: 250,
-              height: 250,
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.gradientStart.withOpacity(0.1),
-                    Colors.transparent,
-                  ],
-                ),
+                color: InstagramColors.gradientOrange.withOpacity(0.12),
               ),
-            ),
-          ),
-          Positioned(
-            bottom: 100,
-            left: -40,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.gradientEnd.withOpacity(0.1),
-                    Colors.transparent,
-                  ],
-                ),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                child: Container(color: Colors.transparent),
               ),
             ),
           ),
 
+          // 2. Main Content
           SafeArea(
             child: Column(
               children: [
-                // Top Section with Title
-                Expanded(
-                  flex: keyboardVisible ? 1 : 2,
-                  child: Center(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Back button
-                          if (!keyboardVisible)
-                            Padding(
-                              padding: const EdgeInsets.only(left: 16, top: 8),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: Icon(
-                                    Icons.arrow_back_ios_new_rounded,
-                                    color: context.themeTextPrimary,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          const Spacer(),
-                          Text(
-                            'Create Account',
-                            style: GoogleFonts.inter(
-                              fontSize: keyboardVisible ? 24 : 32,
-                              fontWeight: FontWeight.w800,
-                              color: context.themeTextPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Sign up to get started',
-                            style: GoogleFonts.inter(
-                              fontSize: 15,
-                              color: context.themeTextSecondary,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          const Spacer(),
-                        ],
-                      ),
-                    ),
+                // Minimal Back Button
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
                   ),
                 ),
-
-                // Bottom Form Section
+                
                 Expanded(
-                  flex: 7,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: context.themeSurface,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(40),
-                          topRight: Radius.circular(40),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 30,
-                            offset: const Offset(0, -10),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(40),
-                          topRight: Radius.circular(40),
-                        ),
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          
+                          // Header Section
+                          Column(
                             children: [
-                              // Name Field
-                              _buildLabel('Name', context),
-                              const SizedBox(height: 8),
-                              _buildTextField(
-                                controller: _nameController,
-                                hint: 'John Williams',
-                                context: context,
+                              Text(
+                                'GENCONFI',
+                                style: GoogleFonts.lexend(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 4.0,
+                                ),
                               ),
-                              const SizedBox(height: 20),
-
-                              // Email Field
-                              _buildLabel('Email', context),
-                              const SizedBox(height: 8),
-                              _buildTextField(
-                                controller: _emailController,
-                                hint: 'johnwilliams@gmail.com',
-                                keyboardType: TextInputType.emailAddress,
-                                context: context,
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Phone Field
-                              _buildLabel('Phone', context),
-                              const SizedBox(height: 8),
-                              _buildTextField(
-                                controller: _phoneController,
-                                hint: '+1 234 567 8900',
-                                keyboardType: TextInputType.phone,
-                                context: context,
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Password Field
-                              _buildLabel('Password', context),
-                              const SizedBox(height: 8),
-                              _buildTextField(
-                                controller: _passwordController,
-                                hint: '••••••••',
-                                isPassword: true,
-                                context: context,
-                              ),
-
-                              const SizedBox(height: 28),
-
-                              // Signup Button
-                              _buildSignupButton(),
-
-                              const SizedBox(height: 24),
-
-                              // Divider with text
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      height: 1,
-                                      color: const Color(0xFFE2E8F0),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    child: Text(
-                                      'or continue with',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 13,
-                                        color: context.themeTextMuted,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Container(
-                                      height: 1,
-                                      color: context.themeBorder,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 24),
-
-                              // Social Login Buttons
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _SocialButton(
-                                    assetPath: 'assets/images/google_logo.png',
-                                    label: 'Google',
-                                    onTap: () => _handleSocialSignup('Google'),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  _SocialButton(
-                                    assetPath:
-                                        'assets/images/instagram_logo.png',
-                                    label: 'Instagram',
-                                    onTap: () =>
-                                        _handleSocialSignup('Instagram'),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 28),
-
-                              // Login Link
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    "Already have an account? ",
-                                    style: GoogleFonts.inter(
-                                      color: context.themeTextSecondary,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => Navigator.pop(context),
-                                    child: ShaderMask(
-                                      shaderCallback: (bounds) => AppColors.primaryGradient.createShader(
-                                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                                      ),
-                                      child: Text(
-                                        'LOG IN',
-                                        style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              const SizedBox(height: 4),
+                              Text(
+                                'START YOUR JOURNEY',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: InstagramColors.textMuted,
+                                  letterSpacing: 2.5,
+                                ),
                               ),
                             ],
                           ),
-                        ),
+
+                          const SizedBox(height: 40),
+
+                          // Form Section
+                          _buildPremiumTextField(
+                            controller: _nameController,
+                            hint: 'Full Name',
+                            icon: Icons.person_outline_rounded,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildPremiumTextField(
+                            controller: _emailController,
+                            hint: 'Email Address',
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildPremiumTextField(
+                            controller: _phoneController,
+                            hint: 'Phone Number',
+                            icon: Icons.phone_android_rounded,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildPremiumTextField(
+                            controller: _passwordController,
+                            hint: 'Create Password',
+                            icon: Icons.lock_outline_rounded,
+                            isPassword: true,
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Signup Button
+                          _buildSignupButton(),
+
+                          const SizedBox(height: 40),
+
+                          // Footer
+                          Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildSocialBtn(FontAwesomeIcons.google, 'Google'),
+                                  const SizedBox(width: 20),
+                                  _buildSocialBtn(FontAwesomeIcons.instagram, 'Instagram'),
+                                  const SizedBox(width: 20),
+                                  _buildSocialBtn(FontAwesomeIcons.facebook, 'Facebook'),
+                                ],
+                              ),
+                              const SizedBox(height: 32),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.pushReplacementNamed(context, AppRoutes.login);
+                                },
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: GoogleFonts.inter(fontSize: 13),
+                                    children: [
+                                      TextSpan(
+                                        text: "Already a member? ",
+                                        style: TextStyle(color: InstagramColors.textMuted),
+                                      ),
+                                      const TextSpan(
+                                        text: "Sign In",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -427,143 +200,89 @@ class _SignupScreenState extends State<SignupScreen>
     );
   }
 
-  Widget _buildLabel(String text, BuildContext context) {
-    return Text(
-      text,
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: context.themeTextPrimary,
-        letterSpacing: 0.3,
-      ),
-    );
-  }
-
-  Widget _buildTextField({
+  Widget _buildPremiumTextField({
     required TextEditingController controller,
     required String hint,
-    required BuildContext context,
+    required IconData icon,
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: context.themeSurfaceElevated,
+        color: InstagramColors.cardDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.themeBorder, width: 1),
+        border: Border.all(color: InstagramColors.borderDark, width: 1),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
         keyboardType: keyboardType,
-        style: GoogleFonts.inter(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: context.themeTextPrimary,
-        ),
+        style: const TextStyle(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.inter(
-            fontSize: 14,
-            color: context.themeTextMuted,
-            fontWeight: FontWeight.w400,
-          ),
+          hintStyle: GoogleFonts.inter(color: InstagramColors.textMuted, fontSize: 13),
+          prefixIcon: Icon(icon, color: InstagramColors.textSecondary, size: 18),
+          suffixIcon: isPassword 
+            ? IconButton(
+                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: InstagramColors.textMuted, size: 16),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              ) 
+            : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-          suffixIcon: isPassword
-              ? IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: context.themeTextMuted,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    setState(() => _obscurePassword = !_obscurePassword);
-                  },
-                )
-              : null,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
     );
   }
 
   Widget _buildSignupButton() {
-    return GradientButton(
-      text: 'SIGN UP',
-      onPressed: _isLoading ? null : _handleSignup,
-      isLoading: _isLoading,
-      icon: Icons.person_add_rounded,
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  final String assetPath;
-  final String label;
-  final VoidCallback onTap;
-
-  const _SocialButton({
-    required this.assetPath,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        height: 54,
-        decoration: BoxDecoration(
-          color: context.themeSurfaceElevated,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: context.themeBorder, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    return Container(
+      width: double.infinity,
+      height: 54,
+      decoration: BoxDecoration(
+        gradient: InstagramColors.instagramGradient,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: InstagramColors.gradientPurple.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () {},
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  assetPath,
-                  height: 24,
-                  width: 24,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.error_outline,
-                      color: context.themeTextMuted,
-                      size: 24,
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: context.themeTextPrimary,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
+        child: Text(
+          'CREATE ACCOUNT',
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+            color: Colors.white,
+            fontSize: 14,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSocialBtn(IconData icon, String label) {
+    return GestureDetector(
+      onTap: () {
+        // Handle social signup
+        debugPrint('$label signup tapped');
+      },
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: InstagramColors.borderDark),
+        ),
+        child: FaIcon(icon, color: Colors.white, size: 20),
       ),
     );
   }
