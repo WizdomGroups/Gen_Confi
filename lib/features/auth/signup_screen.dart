@@ -3,25 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:ui';
 import 'package:gen_confi/app/routes/app_routes.dart';
-
-class InstagramColors {
-  static const Color pureBlack = Color(0xFF000000);
-  static const Color cardDark = Color(0xFF161616);
-  static const Color borderDark = Color(0xFF262626);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFAAAAAA);
-  static const Color textMuted = Color(0xFF666666);
-  
-  static const Color gradientPurple = Color(0xFF833AB4);
-  static const Color gradientRed = Color(0xFFFD1D1D);
-  static const Color gradientOrange = Color(0xFFF77737);
-  
-  static const LinearGradient instagramGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [gradientPurple, gradientRed, gradientOrange],
-  );
-}
+import 'package:gen_confi/services/auth_store.dart';
+import 'package:gen_confi/core/constants/app_colors.dart';
 
 class PremiumSignupScreen extends StatefulWidget {
   const PremiumSignupScreen({super.key});
@@ -37,11 +20,25 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  final _authStore = AuthStore();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+    
     return Scaffold(
-      backgroundColor: InstagramColors.pureBlack,
+      backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: true, // Allow resize for form input
       body: Stack(
         children: [
@@ -54,7 +51,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: InstagramColors.gradientOrange.withOpacity(0.12),
+                color: AppColors.gradientEnd.withOpacity(isDark ? 0.12 : 0.08),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
@@ -72,7 +69,11 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                   alignment: Alignment.centerLeft,
                   child: IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                    icon: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: colorScheme.onSurface,
+                      size: 18,
+                    ),
                   ),
                 ),
                 
@@ -93,7 +94,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                                 style: GoogleFonts.lexend(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                                  color: colorScheme.onSurface,
                                   letterSpacing: 4.0,
                                 ),
                               ),
@@ -103,7 +104,9 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                                 style: GoogleFonts.inter(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: InstagramColors.textMuted,
+                                  color: isDark 
+                                      ? AppColors.textMutedDark 
+                                      : AppColors.textMutedLight,
                                   letterSpacing: 2.5,
                                 ),
                               ),
@@ -171,12 +174,16 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                                     children: [
                                       TextSpan(
                                         text: "Already a member? ",
-                                        style: TextStyle(color: InstagramColors.textMuted),
+                                        style: TextStyle(
+                                          color: isDark 
+                                              ? AppColors.textMutedDark 
+                                              : AppColors.textMutedLight,
+                                        ),
                                       ),
-                                      const TextSpan(
+                                      TextSpan(
                                         text: "Sign In",
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          color: colorScheme.onSurface,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -207,24 +214,51 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+    
     return Container(
       decoration: BoxDecoration(
-        color: InstagramColors.cardDark,
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: InstagramColors.borderDark, width: 1),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          width: 1,
+        ),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
         keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: TextStyle(
+          color: colorScheme.onSurface,
+          fontSize: 14,
+        ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.inter(color: InstagramColors.textMuted, fontSize: 13),
-          prefixIcon: Icon(icon, color: InstagramColors.textSecondary, size: 18),
+          hintStyle: GoogleFonts.inter(
+            color: isDark 
+                ? AppColors.textMutedDark 
+                : AppColors.textMutedLight,
+            fontSize: 13,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: isDark 
+                ? AppColors.textSecondaryDark 
+                : AppColors.textSecondaryLight,
+            size: 18,
+          ),
           suffixIcon: isPassword 
             ? IconButton(
-                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: InstagramColors.textMuted, size: 16),
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: isDark 
+                      ? AppColors.textMutedDark 
+                      : AppColors.textMutedLight,
+                  size: 16,
+                ),
                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
               ) 
             : null,
@@ -236,41 +270,143 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
   }
 
   Widget _buildSignupButton() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       width: double.infinity,
       height: 54,
       decoration: BoxDecoration(
-        gradient: InstagramColors.instagramGradient,
+        gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: InstagramColors.gradientPurple.withOpacity(0.2),
+            color: AppColors.gradientStart.withOpacity(isDark ? 0.2 : 0.15),
             blurRadius: 15,
             offset: const Offset(0, 8),
           )
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: _isLoading ? null : _handleSignup,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          disabledBackgroundColor: Colors.transparent,
         ),
-        child: Text(
-          'CREATE ACCOUNT',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.5,
-            color: Colors.white,
-            fontSize: 14,
-          ),
+        child: _isLoading
+            ? SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(
+                'CREATE ACCOUNT',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+              ),
+      ),
+    );
+  }
+
+  void _handleSignup() async {
+    // Get form values
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Validate inputs
+    if (name.isEmpty) {
+      _showError('Please enter your full name');
+      return;
+    }
+
+    if (email.isEmpty) {
+      _showError('Please enter your email address');
+      return;
+    }
+
+    if (!_isValidEmail(email)) {
+      _showError('Please enter a valid email address');
+      return;
+    }
+
+    if (phone.isEmpty) {
+      _showError('Please enter your phone number');
+      return;
+    }
+
+    if (password.isEmpty) {
+      _showError('Please enter a password');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showError('Password must be at least 6 characters');
+      return;
+    }
+
+    // Set loading state
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Simulate API call delay
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Perform signup (default to client role for new signups)
+      _authStore.signup(email, password, UserRole.client);
+
+      // Navigate to role selection or onboarding
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.roleSelection);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('Signup failed. Please try again.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.inter(),
         ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
   Widget _buildSocialBtn(IconData icon, String label) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+    
     return GestureDetector(
       onTap: () {
         // Handle social signup
@@ -280,9 +416,15 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: InstagramColors.borderDark),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
         ),
-        child: FaIcon(icon, color: Colors.white, size: 20),
+        child: FaIcon(
+          icon,
+          color: colorScheme.onSurface,
+          size: 20,
+        ),
       ),
     );
   }

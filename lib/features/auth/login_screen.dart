@@ -3,26 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:ui';
 import 'package:gen_confi/app/routes/app_routes.dart';
-
-class InstagramColors {
-  static const Color pureBlack = Color(0xFF000000);
-  static const Color deepDark = Color(0xFF050505);
-  static const Color cardDark = Color(0xFF161616);
-  static const Color borderDark = Color(0xFF262626);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFAAAAAA);
-  static const Color textMuted = Color(0xFF666666);
-  
-  static const Color gradientPurple = Color(0xFF833AB4);
-  static const Color gradientRed = Color(0xFFFD1D1D);
-  static const Color gradientOrange = Color(0xFFF77737);
-  
-  static const LinearGradient instagramGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [gradientPurple, gradientRed, gradientOrange],
-  );
-}
+import 'package:gen_confi/core/constants/app_colors.dart';
 
 class PremiumLoginScreen extends StatefulWidget {
   const PremiumLoginScreen({super.key});
@@ -38,12 +19,20 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
   bool _obscurePassword = true;
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Screen height to calculate dynamic spacing
-    final screenHeight = MediaQuery.of(context).size.height;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: InstagramColors.pureBlack,
+      backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: false, // Prevents resizing (and thus scrolling) when keyboard appears
       body: Stack(
         children: [
@@ -56,7 +45,7 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: InstagramColors.gradientPurple.withOpacity(0.15),
+                color: AppColors.gradientStart.withOpacity(isDark ? 0.15 : 0.1),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
@@ -81,15 +70,15 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: InstagramColors.instagramGradient,
+                          gradient: AppColors.primaryGradient,
                         ),
                         child: CircleAvatar(
                           radius: 38,
-                          backgroundColor: InstagramColors.pureBlack,
-                          child: const Icon(
+                          backgroundColor: colorScheme.surface,
+                          child: Icon(
                             Icons.auto_awesome_rounded, // More "premium" icon
                             size: 32,
-                            color: Colors.white,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -99,7 +88,7 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                         style: GoogleFonts.lexend( // Switched to Lexend for a cleaner premium look
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: colorScheme.onSurface,
                           letterSpacing: 4.0,
                         ),
                       ),
@@ -108,7 +97,9 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: InstagramColors.textMuted,
+                          color: isDark 
+                              ? AppColors.textMutedDark 
+                              : AppColors.textMutedLight,
                           letterSpacing: 3.0,
                         ),
                       ),
@@ -135,11 +126,15 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppRoutes.forgotPassword);
+                          },
                           child: Text(
                             'Forgot Password?',
                             style: GoogleFonts.inter(
-                              color: InstagramColors.textSecondary,
+                              color: isDark 
+                                  ? AppColors.textSecondaryDark 
+                                  : AppColors.textSecondaryLight,
                               fontSize: 12,
                             ),
                           ),
@@ -163,7 +158,9 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: InstagramColors.textMuted,
+                          color: isDark 
+                              ? AppColors.textMutedDark 
+                              : AppColors.textMutedLight,
                           letterSpacing: 1.5,
                         ),
                       ),
@@ -188,12 +185,16 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                           children: [
                             Text(
                               "New here? ",
-                              style: GoogleFonts.inter(color: InstagramColors.textMuted),
+                              style: GoogleFonts.inter(
+                                color: isDark 
+                                    ? AppColors.textMutedDark 
+                                    : AppColors.textMutedLight,
+                              ),
                             ),
                             Text(
                               "Create Account",
                               style: GoogleFonts.inter(
-                                color: Colors.white,
+                                color: colorScheme.onSurface,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -217,23 +218,50 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
     required IconData icon,
     bool isPassword = false,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+    
     return Container(
       decoration: BoxDecoration(
-        color: InstagramColors.cardDark,
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: InstagramColors.borderDark, width: 1),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          width: 1,
+        ),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: TextStyle(
+          color: colorScheme.onSurface,
+          fontSize: 15,
+        ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.inter(color: InstagramColors.textMuted, fontSize: 14),
-          prefixIcon: Icon(icon, color: InstagramColors.textSecondary, size: 20),
+          hintStyle: GoogleFonts.inter(
+            color: isDark 
+                ? AppColors.textMutedDark 
+                : AppColors.textMutedLight,
+            fontSize: 14,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: isDark 
+                ? AppColors.textSecondaryDark 
+                : AppColors.textSecondaryLight,
+            size: 20,
+          ),
           suffixIcon: isPassword 
             ? IconButton(
-                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: InstagramColors.textMuted, size: 18),
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: isDark 
+                      ? AppColors.textMutedDark 
+                      : AppColors.textMutedLight,
+                  size: 18,
+                ),
                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
               ) 
             : null,
@@ -245,12 +273,22 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
   }
 
   Widget _buildLoginButton(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       width: double.infinity,
       height: 54,
       decoration: BoxDecoration(
-        gradient: InstagramColors.instagramGradient,
+        gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.gradientStart.withOpacity(isDark ? 0.2 : 0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
       ),
       child: ElevatedButton(
         onPressed: () {
@@ -293,6 +331,10 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
   }
 
   Widget _buildSocialBtn(IconData icon, String label) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+    
     return GestureDetector(
       onTap: () {
         // Handle social login
@@ -302,9 +344,15 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: InstagramColors.borderDark),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
         ),
-        child: FaIcon(icon, color: Colors.white, size: 20),
+        child: FaIcon(
+          icon,
+          color: colorScheme.onSurface,
+          size: 20,
+        ),
       ),
     );
   }

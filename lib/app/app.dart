@@ -5,6 +5,7 @@ import 'package:gen_confi/services/theme_store.dart';
 import 'package:gen_confi/features/auth/splash_screen.dart';
 import 'package:gen_confi/features/auth/login_screen.dart';
 import 'package:gen_confi/features/auth/signup_screen.dart';
+import 'package:gen_confi/features/auth/forgot_password_screen.dart';
 import 'package:gen_confi/features/auth/role_selector.dart';
 // import 'package:gen_confi/features/admin/dashboard/admin_dashboard.dart'; // Legacy removed
 // import 'package:gen_confi/features/expert/dashboard/expert_dashboard.dart'; // Legacy removed
@@ -55,6 +56,7 @@ class GenConfiApp extends StatelessWidget {
         AppRoutes.splash: (context) => const SplashScreen(),
         AppRoutes.login: (context) => const PremiumLoginScreen(),
         AppRoutes.signup: (context) => const PremiumSignupScreen(),
+        AppRoutes.forgotPassword: (context) => const PremiumForgotPasswordScreen(),
         AppRoutes.roleSelection: (context) => const RoleSelectorScreen(),
 
         AppRoutes.chatOnboarding: (context) => const ChatOnboardingScreen(),

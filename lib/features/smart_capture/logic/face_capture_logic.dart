@@ -1,11 +1,11 @@
 import 'dart:math';
-import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/camera_utils.dart';
 import '../domain/capture_thresholds.dart';
+import '../domain/face_analysis_metrics.dart';
 
 enum CaptureStatus {
   noFace,
@@ -26,7 +26,7 @@ class AnalysisResult {
   final double? sharpness;
   final double? brightness;
   final FacePositionInfo? positionInfo;
-  final List<Offset>? landmarks; // Face landmarks for mesh visualization
+  final List<Offset>? landmarks;
 
   AnalysisResult({
     required this.status,
@@ -66,10 +66,15 @@ class FaceCaptureLogic {
   double? _previousFaceCenterX;
   double? _previousFaceCenterY;
   int _frameCount = 0;
-  final List<CameraImage> _frameBuffer = [];
   
   // Store last result for overlay access
   AnalysisResult? lastResult;
+  
+  // Store comprehensive metrics
+  FaceAnalysisMetrics? _currentMetrics;
+  
+  // Processing lock to prevent concurrent analysis
+  bool _isAnalyzing = false;
   
   FaceCaptureLogic() : _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
@@ -82,7 +87,12 @@ class FaceCaptureLogic {
 
   void dispose() {
     _faceDetector.close();
-    _frameBuffer.clear();
+    _isAnalyzing = false;
+  }
+
+  /// Get current analysis metrics
+  FaceAnalysisMetrics? getAnalysisMetrics() {
+    return _currentMetrics;
   }
 
   Future<AnalysisResult> analyze(
@@ -90,66 +100,156 @@ class FaceCaptureLogic {
     CameraDescription camera, 
     DeviceOrientation orientation
   ) async {
+    // Prevent concurrent analysis
+    if (_isAnalyzing) {
+      return lastResult ?? AnalysisResult(
+        status: CaptureStatus.noFace,
+        instruction: "Processing...",
+      );
+    }
+    
     _frameCount++;
     
-    // Process every frame for active face tracking
-    // No frame skipping - we need real-time guidance updates
-
-    // Manage frame buffer
-    _frameBuffer.add(frame);
-    if (_frameBuffer.length > CaptureThresholds.maxBufferSize) {
-      _frameBuffer.removeAt(0);
+    // Frame skipping for performance - process every Nth frame
+    // Still provide real-time feedback but reduce CPU load
+    if (_frameCount % CaptureThresholds.frameSkipCount != 0) {
+      // Return last result for smooth UI updates
+      return lastResult ?? AnalysisResult(
+        status: CaptureStatus.noFace,
+        instruction: "Position your face in the frame",
+      );
     }
-
-    // 1. Convert to InputImage
-    final inputImage = CameraUtils.convertCameraImage(frame, camera, orientation);
-    if (inputImage == null) {
-      return AnalysisResult(
+    
+    _isAnalyzing = true;
+    
+    try {
+      // 1. Convert to InputImage
+      final inputImage = CameraUtils.convertCameraImage(frame, camera, orientation);
+      if (inputImage == null) {
+      final result = AnalysisResult(
         status: CaptureStatus.noFace, 
         instruction: "Initializing camera...",
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, null);
+      _isAnalyzing = false;
+      return result;
     }
 
     // 2. Improved Brightness Check
     final double brightness = _calculateImprovedBrightness(frame);
     if (brightness < CaptureThresholds.minBrightness) {
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.lowLight, 
-        instruction: "💡 Move to a brighter area\nYour face needs more light",
+        instruction: "Move to a brighter area\nYour face needs more light",
         brightness: brightness,
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, null);
+      _isAnalyzing = false;
+      return result;
     }
 
-    // 3. Face Detection
+    // 3. Face Detection with timeout
     List<Face> faces;
     try {
-      faces = await _faceDetector.processImage(inputImage);
+      faces = await _faceDetector.processImage(inputImage)
+          .timeout(
+            CaptureThresholds.faceDetectionTimeout,
+            onTimeout: () {
+              debugPrint("Face detection timeout");
+              return <Face>[];
+            },
+          );
     } catch (e) {
       debugPrint("Face detection error: $e");
+      _isAnalyzing = false;
       return AnalysisResult(
         status: CaptureStatus.noFace, 
-        instruction: "👤 Position your face in the center\nLook directly at the camera",
+        instruction: "Detection error\nPlease try again",
       );
     }
 
     // 4. Basic Validation
     if (faces.isEmpty) {
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.noFace, 
-        instruction: "👤 Position your face in the frame\nMake sure your entire face is visible",
+        instruction: "Position your face in the frame\nMake sure your entire face is visible",
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, null);
+      _isAnalyzing = false;
+      return result;
     }
-    if (faces.length > 1) {
-      return AnalysisResult(
-        status: CaptureStatus.multipleFaces, 
-        instruction: "👥 Only one person, please!\nMove others out of the frame",
+    
+    // Calculate image dimensions first (needed for face filtering and size validation)
+    double imageWidth = frame.width.toDouble();
+    double imageHeight = frame.height.toDouble();
+    
+    if (camera.sensorOrientation == 90 || camera.sensorOrientation == 270) {
+      double temp = imageWidth;
+      imageWidth = imageHeight;
+      imageHeight = temp;
+    }
+    
+    // Filter out false positive faces (very small faces are likely reflections or shadows)
+    // Calculate image area for size comparison
+    double imageArea = imageWidth * imageHeight;
+    
+    // Filter faces by size - ignore very small faces (likely false positives)
+    final validFaces = faces.where((face) {
+      final faceArea = face.boundingBox.width * face.boundingBox.height;
+      final faceRatio = faceArea / imageArea;
+      return faceRatio >= CaptureThresholds.minFaceSizeForMultipleDetection;
+    }).toList();
+    
+    if (validFaces.isEmpty) {
+      final result = AnalysisResult(
+        status: CaptureStatus.noFace, 
+        instruction: "Position your face in the frame\nMake sure your entire face is visible",
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, null);
+      _isAnalyzing = false;
+      return result;
+    }
+    
+    // Check for multiple valid faces
+    if (validFaces.length > 1) {
+      // Find the largest face (primary face)
+      validFaces.sort((a, b) {
+        final areaA = a.boundingBox.width * a.boundingBox.height;
+        final areaB = b.boundingBox.width * b.boundingBox.height;
+        return areaB.compareTo(areaA); // Sort descending
+      });
+      
+      // If the second largest face is significantly smaller, ignore it
+      final primaryArea = validFaces[0].boundingBox.width * validFaces[0].boundingBox.height;
+      final secondaryArea = validFaces[1].boundingBox.width * validFaces[1].boundingBox.height;
+      
+      // If secondary face is less than 30% of primary, ignore it (likely false positive)
+      if (secondaryArea / primaryArea < 0.30) {
+        // Use only the primary face
+        final face = validFaces[0];
+        // Continue with single face processing below
+      } else {
+        // Two significant faces detected - show multiple faces message
+        final result = AnalysisResult(
+          status: CaptureStatus.multipleFaces, 
+          instruction: "Make sure only you are visible\nMove others out of the frame",
+        );
+        lastResult = result;
+        _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, null);
+        _isAnalyzing = false;
+        return result;
+      }
     }
 
-    final face = faces.first;
+    // Use the primary (largest) face
+    final face = validFaces[0];
     final Rect faceRect = face.boundingBox;
     
-    // Extract landmarks for mesh visualization
+    // Extract landmarks for overlay display
     List<Offset> landmarks = [];
     try {
       // ML Kit provides landmarks through face.landmarks
@@ -172,25 +272,15 @@ class FaceCaptureLogic {
       if (rightCheek != null) landmarks.add(Offset(rightCheek.position.x.toDouble(), rightCheek.position.y.toDouble()));
       
       // Add forehead point (estimated from face rect)
-      landmarks.add(Offset(faceRect.center.dx, faceRect.top + faceRect.height * 0.15));
+      landmarks.add(Offset(faceRect.center.dx, faceRect.top + faceRect.height * CaptureThresholds.foreheadEstimateOffset));
       // Add chin point
-      landmarks.add(Offset(faceRect.center.dx, faceRect.bottom - faceRect.height * 0.1));
+      landmarks.add(Offset(faceRect.center.dx, faceRect.bottom - faceRect.height * CaptureThresholds.chinEstimateOffset));
     } catch (e) {
       debugPrint("Landmark extraction error: $e");
     }
     
-    // Calculate image dimensions
-    double imageWidth = frame.width.toDouble();
-    double imageHeight = frame.height.toDouble();
-    
-    if (camera.sensorOrientation == 90 || camera.sensorOrientation == 270) {
-      double temp = imageWidth;
-      imageWidth = imageHeight;
-      imageHeight = temp;
-    }
-    
+    // Calculate face fill ratio (image dimensions already calculated above)
     double faceArea = faceRect.width * faceRect.height;
-    double imageArea = imageWidth * imageHeight;
     double faceFillRatio = faceArea / imageArea;
 
     // Head Pose
@@ -207,12 +297,12 @@ class FaceCaptureLogic {
     double centerOffsetY = (normCenterY - 0.5) * 2;
     
     // Distance ratio: 0 = too far, 0.5 = perfect, 1 = too close
-    double distanceRatio = 0.5;
+    double distanceRatio = CaptureThresholds.perfectDistanceRatio;
     if (faceFillRatio < CaptureThresholds.minFaceAreaRatio) {
-      distanceRatio = faceFillRatio / CaptureThresholds.minFaceAreaRatio * 0.5;
+      distanceRatio = faceFillRatio / CaptureThresholds.minFaceAreaRatio * CaptureThresholds.perfectDistanceRatio;
     } else if (faceFillRatio > CaptureThresholds.maxFaceAreaRatio) {
-      distanceRatio = 0.5 + ((faceFillRatio - CaptureThresholds.minFaceAreaRatio) / 
-                             (CaptureThresholds.maxFaceAreaRatio - CaptureThresholds.minFaceAreaRatio)) * 0.5;
+      distanceRatio = CaptureThresholds.perfectDistanceRatio + ((faceFillRatio - CaptureThresholds.minFaceAreaRatio) / 
+                             (CaptureThresholds.maxFaceAreaRatio - CaptureThresholds.minFaceAreaRatio)) * CaptureThresholds.perfectDistanceRatio;
     }
     
     final positionInfo = FacePositionInfo(
@@ -226,59 +316,79 @@ class FaceCaptureLogic {
 
     // 5. Head Pose Validation with detailed messages
     if (rotX.abs() > CaptureThresholds.maxPitchDeg) {
-      String direction = rotX > 0 ? "down" : "up";
       _resetMotionTracking();
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.noFace, 
-        instruction: "⬆️ Raise phone to eye level\nLook straight at the camera",
+        instruction: "Raise phone to eye level\nLook straight at the camera",
         faceRect: faceRect,
         positionInfo: positionInfo,
         landmarks: landmarks,
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
     }
     if (rotY.abs() > CaptureThresholds.maxYawDeg) {
-      String direction = rotY > 0 ? "right" : "left";
       _resetMotionTracking();
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.noFace, 
-        instruction: "👀 Look directly at the camera\nTurn your head to face forward",
+        instruction: "Look directly at the camera\nTurn your head to face forward",
         faceRect: faceRect,
         positionInfo: positionInfo,
         landmarks: landmarks,
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
     }
     if (rotZ.abs() > CaptureThresholds.maxRollDeg) {
       _resetMotionTracking();
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.noFace, 
-        instruction: "📐 Straighten your head\nKeep your head level",
+        instruction: "Straighten your head\nKeep your head level",
         faceRect: faceRect,
         positionInfo: positionInfo,
         landmarks: landmarks,
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
     }
     
     // 6. Face Size Validation with distance guidance
+    // First check if face is too small (too far)
     if (faceFillRatio < CaptureThresholds.minFaceAreaRatio) {
       _resetMotionTracking();
-      double percentTooFar = ((CaptureThresholds.minFaceAreaRatio - faceFillRatio) / CaptureThresholds.minFaceAreaRatio * 100).roundToDouble();
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.tooFar, 
-        instruction: "📏 Move closer to the camera\nYour face is too far away",
+        instruction: "Move closer to the camera\nYour face needs to fill more of the frame",
         faceRect: faceRect,
         positionInfo: positionInfo,
         landmarks: landmarks,
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
     }
+    
+    // Check if face is too large (too close) - stricter for model processing
     if (faceFillRatio > CaptureThresholds.maxFaceAreaRatio) {
       _resetMotionTracking();
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.tooClose, 
-        instruction: "📏 Move back a little\nYour face is too close",
+        instruction: "Step back from the camera\nYour face is too close for processing",
         faceRect: faceRect,
         positionInfo: positionInfo,
         landmarks: landmarks,
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
     }
 
     // 7. Centering Validation with directional guidance
@@ -304,13 +414,17 @@ class FaceCaptureLogic {
         instruction += vertical;
       }
       
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.notCentered, 
         instruction: instruction,
         faceRect: faceRect,
         positionInfo: positionInfo,
         landmarks: landmarks,
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
     }
 
     // 8. Motion Detection (only check if significant movement)
@@ -324,36 +438,46 @@ class FaceCaptureLogic {
       // Only fail if movement is significant (allow small natural movements)
       if (totalDisplacement > CaptureThresholds.maxFaceDisplacement) {
         _updateMotionTracking(faceRect, faceCenterX, faceCenterY);
-        return AnalysisResult(
+        final result = AnalysisResult(
           status: CaptureStatus.moving, 
-          instruction: "⏸️ Hold still...\nKeep your head steady",
+          instruction: "Hold still\nKeep your head steady",
           faceRect: faceRect,
           positionInfo: positionInfo,
           landmarks: landmarks,
         );
+        lastResult = result;
+        _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+        _isAnalyzing = false;
+        return result;
       }
     }
 
     // 9. Sharpness/Blur Detection (relaxed - only fail if very blurry)
     double sharpness = _calculateSharpness(frame, faceRect);
     // Only fail if significantly blurry, allow some tolerance
-    if (sharpness < CaptureThresholds.minSharpness * 0.7) {
+    if (sharpness < CaptureThresholds.minSharpness * CaptureThresholds.sharpnessToleranceMultiplier) {
       _updateMotionTracking(faceRect, faceCenterX, faceCenterY);
-      return AnalysisResult(
+      final result = AnalysisResult(
         status: CaptureStatus.moving, 
-        instruction: "📸 Hold still for a moment\nImage is blurry",
+        instruction: "Hold still for a moment\nImage is blurry",
         faceRect: faceRect,
         sharpness: sharpness,
         positionInfo: positionInfo,
         landmarks: landmarks,
       );
+      lastResult = result;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
     }
 
-    // All validations passed
+    // All validations passed - face is in optimal range for model processing
+    // Reset motion tracking for fresh start
+    _resetMotionTracking();
     _updateMotionTracking(faceRect, faceCenterX, faceCenterY);
     final result = AnalysisResult(
       status: CaptureStatus.ready, 
-      instruction: "✅ Perfect! Hold still...\nPhoto will be taken automatically",
+      instruction: "Perfect! Hold still\nPhoto will be taken automatically",
       faceRect: faceRect,
       sharpness: sharpness,
       brightness: brightness,
@@ -361,7 +485,25 @@ class FaceCaptureLogic {
       landmarks: landmarks,
     );
     lastResult = result;
+    _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+    _isAnalyzing = false;
     return result;
+    } catch (e, stackTrace) {
+      // Handle any unexpected errors
+      debugPrint("Unexpected error in analyze: $e");
+      debugPrint("Stack trace: $stackTrace");
+      final errorResult = AnalysisResult(
+        status: CaptureStatus.noFace,
+        instruction: "Detection error\nPlease try again",
+      );
+      lastResult = errorResult;
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(errorResult, null);
+      _isAnalyzing = false;
+      return errorResult;
+    } finally {
+      // Ensure lock is released even if error occurs
+      _isAnalyzing = false;
+    }
   }
 
   double _calculateImprovedBrightness(CameraImage image) {
@@ -372,7 +514,7 @@ class FaceCaptureLogic {
     
     int total = 0;
     int samples = 0;
-    int step = 50;
+    final int step = CaptureThresholds.brightnessSamplingStep.toInt();
     
     for (int y = 0; y < height; y += step) {
       for (int x = 0; x < width; x += step) {
@@ -384,8 +526,8 @@ class FaceCaptureLogic {
           double distFromCenter = sqrt(
             pow((x - centerX) / width, 2) + pow((y - centerY) / height, 2)
           );
-          if (distFromCenter < 0.3) {
-            weight = 2.0;
+          if (distFromCenter < CaptureThresholds.centerRegionRadius) {
+            weight = CaptureThresholds.centerWeightMultiplier;
           }
           
           total += (bytes[index] * weight).round();
@@ -414,7 +556,7 @@ class FaceCaptureLogic {
       double mean = 0.0;
       int count = 0;
       
-      int step = 5;
+      final int step = CaptureThresholds.sharpnessSamplingStep.toInt();
       for (int y = faceTop; y < faceBottom; y += step) {
         for (int x = faceLeft; x < faceRight; x += step) {
           int index = y * width + x;

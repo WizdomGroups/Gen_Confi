@@ -5,8 +5,11 @@
 class CaptureThresholds {
   // Positioning
   static const double maxCenterOffset = 0.15; // 15% deviation from center (X & Y)
-  static const double minFaceAreaRatio = 0.35; // Minimum face size (35% of image)
-  static const double maxFaceAreaRatio = 0.60; // Maximum face size (60% of image)
+  static const double minFaceAreaRatio = 0.25; // Minimum face size (25% of image) - relaxed for better detection
+  static const double maxFaceAreaRatio = 0.50; // Maximum face size (50% of image) - optimal for model processing
+  static const double optimalMinFaceAreaRatio = 0.35; // Optimal minimum (35% of image) - best for model
+  static const double optimalMaxFaceAreaRatio = 0.45; // Optimal maximum (45% of image) - best for model
+  static const double minFaceSizeForMultipleDetection = 0.10; // Ignore faces smaller than 10% (likely false positives)
 
   // Pose (Degrees)
   static const double maxYawDeg = 12.0; // Left/right head rotation
@@ -29,5 +32,18 @@ class CaptureThresholds {
   static const int frameSkipCount = 3; // Process every Nth frame for performance
 
   // Performance
-  static const int maxBufferSize = 5; // Maximum frames to keep in buffer
+  static const int maxBufferSize = 2; // Maximum frames to keep in buffer (reduced for memory)
+  
+  // Timeouts
+  static const Duration faceDetectionTimeout = Duration(seconds: 3); // Timeout for face detection
+  
+  // Magic numbers (moved from code)
+  static const double sharpnessToleranceMultiplier = 0.7; // Relaxed sharpness threshold
+  static const double centerWeightMultiplier = 2.0; // Weight for center region in brightness calc
+  static const double centerRegionRadius = 0.3; // Center region radius for brightness weighting
+  static const double brightnessSamplingStep = 50.0; // Step size for brightness sampling
+  static const double sharpnessSamplingStep = 5.0; // Step size for sharpness sampling
+  static const double perfectDistanceRatio = 0.5; // Perfect distance ratio value
+  static const double foreheadEstimateOffset = 0.15; // Forehead point offset from top
+  static const double chinEstimateOffset = 0.1; // Chin point offset from bottom
 }
