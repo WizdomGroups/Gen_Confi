@@ -72,16 +72,47 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
     if (_isDisposed) return;
     
     final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
     
-    if (state == AppLifecycleState.inactive) {
-      _stopStream();
-      final controllerToDispose = _controller;
-      _controller = null; // Clear reference before disposal
-      _isCameraInitialized = false;
-      controllerToDispose?.dispose();
-    } else if (state == AppLifecycleState.resumed && !_isDisposed && mounted) {
-      _initializeCamera(); 
+    switch (state) {
+      case AppLifecycleState.inactive:
+        // App is transitioning (e.g., incoming call, notification)
+        // Just pause the stream, don't dispose camera yet
+        if (controller != null && controller.value.isInitialized) {
+          _stopStream();
+        }
+        break;
+        
+      case AppLifecycleState.paused:
+        // App is in background - stop stream and dispose camera to free resources
+        if (controller != null && controller.value.isInitialized) {
+          _stopStream();
+          final controllerToDispose = _controller;
+          _controller = null; // Clear reference before disposal
+          _isCameraInitialized = false;
+          controllerToDispose?.dispose();
+        }
+        break;
+        
+      case AppLifecycleState.resumed:
+        // App is back in foreground - reinitialize camera if needed
+        if (!_isDisposed && mounted && (controller == null || !controller.value.isInitialized)) {
+          _initializeCamera();
+        } else if (controller != null && controller.value.isInitialized) {
+          // Camera still valid, just restart stream
+          _startStream();
+        }
+        break;
+        
+      case AppLifecycleState.detached:
+        // App is being terminated - handled by dispose()
+        break;
+        
+      case AppLifecycleState.hidden:
+        // App is hidden - pause stream
+        if (controller != null && controller.value.isInitialized) {
+          _stopStream();
+        }
+        break;
     }
   }
 
@@ -426,6 +457,23 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
   void _startStabilityTimer() {
     _stabilityTimer?.cancel();
     
+    // Adaptive timer duration based on quality
+    // Higher quality = faster capture, lower quality = wait longer
+    int timerDuration = CaptureThresholds.stableDurationMs;
+    if (_logic != null) {
+      // Adjust based on how stable the face is
+      final stabilityScore = _logic!.stabilityScore;
+      final consecutiveStable = _logic!.consecutiveStableFrames;
+      
+      if (stabilityScore > 0.9 && consecutiveStable >= 3) {
+        // Very stable - capture faster (30% faster)
+        timerDuration = (CaptureThresholds.stableDurationMs * 0.7).round();
+      } else if (stabilityScore < 0.7 || consecutiveStable < 2) {
+        // Less stable - wait longer (30% longer)
+        timerDuration = (CaptureThresholds.stableDurationMs * 1.3).round();
+      }
+    }
+    
     // Update progress during timer
     final startTime = DateTime.now();
     _stabilityTimer = Timer.periodic(
@@ -437,7 +485,7 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
         }
         
         final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-        final progress = (elapsed / CaptureThresholds.stableDurationMs).clamp(0.0, 1.0);
+        final progress = (elapsed / timerDuration).clamp(0.0, 1.0);
         
         if (mounted && !_isDisposed) {
           setState(() {
@@ -445,7 +493,7 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
           });
         }
         
-        if (elapsed >= CaptureThresholds.stableDurationMs) {
+        if (elapsed >= timerDuration) {
           timer.cancel();
           if (!_isDisposed && mounted) {
             _capturePhoto();

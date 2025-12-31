@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'chat_question_screen.dart';
 
 class SmartCapturePreviewScreen extends StatelessWidget {
   final String imagePath;
@@ -38,7 +39,21 @@ class SmartCapturePreviewScreen extends StatelessWidget {
                   style: TextButton.styleFrom(backgroundColor: Colors.white24),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => onConfirm(imagePath),
+                  onPressed: () async {
+                    // Navigate to chat question screen
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (ctx) => ChatQuestionScreen(
+                          imagePath: imagePath,
+                        ),
+                      ),
+                    );
+                    // If user completed or skipped, confirm with image path
+                    if (result != null) {
+                      onConfirm(result);
+                    }
+                  },
                   icon: const Icon(Icons.check),
                   label: const Text("Use Photo"),
                   style: ElevatedButton.styleFrom(

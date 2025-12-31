@@ -61,11 +61,21 @@ class FacePositionInfo {
 class FaceCaptureLogic {
   final FaceDetector _faceDetector;
   
-  // Motion tracking
+  // Enhanced motion tracking with multi-frame history
+  final List<Map<String, double>> _motionHistory = []; // Store recent face positions
+  static const int _maxMotionHistorySize = 5; // Track last 5 frames for smoother detection
   Rect? _previousFaceRect;
   double? _previousFaceCenterX;
   double? _previousFaceCenterY;
   int _frameCount = 0;
+  
+  // Dynamic stability scoring (0.0 to 1.0)
+  double _stabilityScore = 0.0;
+  int _consecutiveStableFrames = 0;
+  
+  // Adaptive thresholds based on conditions
+  double _adaptiveMotionThreshold = CaptureThresholds.maxFaceDisplacement;
+  double _adaptiveSharpnessThreshold = CaptureThresholds.minSharpness;
   
   // Store last result for overlay access
   AnalysisResult? lastResult;
@@ -94,6 +104,12 @@ class FaceCaptureLogic {
   FaceAnalysisMetrics? getAnalysisMetrics() {
     return _currentMetrics;
   }
+  
+  /// Get current stability score (0.0 to 1.0)
+  double get stabilityScore => _stabilityScore;
+  
+  /// Get consecutive stable frames count
+  int get consecutiveStableFrames => _consecutiveStableFrames;
 
   Future<AnalysisResult> analyze(
     CameraImage frame, 
@@ -325,6 +341,7 @@ class FaceCaptureLogic {
         landmarks: landmarks,
       );
       lastResult = result;
+      // Update metrics
       _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
       _isAnalyzing = false;
       return result;
@@ -339,6 +356,7 @@ class FaceCaptureLogic {
         landmarks: landmarks,
       );
       lastResult = result;
+      // Update metrics
       _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
       _isAnalyzing = false;
       return result;
@@ -353,6 +371,7 @@ class FaceCaptureLogic {
         landmarks: landmarks,
       );
       lastResult = result;
+      // Update metrics
       _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
       _isAnalyzing = false;
       return result;
@@ -370,6 +389,7 @@ class FaceCaptureLogic {
         landmarks: landmarks,
       );
       lastResult = result;
+      // Update metrics
       _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
       _isAnalyzing = false;
       return result;
@@ -386,6 +406,7 @@ class FaceCaptureLogic {
         landmarks: landmarks,
       );
       lastResult = result;
+      // Update metrics
       _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
       _isAnalyzing = false;
       return result;
@@ -422,22 +443,47 @@ class FaceCaptureLogic {
         landmarks: landmarks,
       );
       lastResult = result;
+      // Update metrics
       _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
       _isAnalyzing = false;
       return result;
     }
 
-    // 8. Motion Detection (only check if significant movement)
-    if (_previousFaceRect != null && 
-        _previousFaceCenterX != null && 
-        _previousFaceCenterY != null) {
-      double displacementX = (faceCenterX - _previousFaceCenterX!).abs() / imageWidth;
-      double displacementY = (faceCenterY - _previousFaceCenterY!).abs() / imageHeight;
-      double totalDisplacement = sqrt(displacementX * displacementX + displacementY * displacementY);
-      
-      // Only fail if movement is significant (allow small natural movements)
-      if (totalDisplacement > CaptureThresholds.maxFaceDisplacement) {
+    // 8. Enhanced Motion Detection with multi-frame analysis
+    double motionScore = _calculateMotionScore(faceCenterX, faceCenterY, imageWidth, imageHeight);
+    
+    // Update motion history
+    _motionHistory.add({
+      'x': faceCenterX / imageWidth,
+      'y': faceCenterY / imageHeight,
+      'timestamp': DateTime.now().millisecondsSinceEpoch.toDouble(),
+    });
+    
+    // Keep only recent history
+    if (_motionHistory.length > _maxMotionHistorySize) {
+      _motionHistory.removeAt(0);
+    }
+    
+    // Adaptive motion threshold based on face size (larger faces = stricter)
+    double adaptiveThreshold = _adaptiveMotionThreshold;
+    if (faceFillRatio > CaptureThresholds.optimalMaxFaceAreaRatio) {
+      // Face is close - be more strict
+      adaptiveThreshold = CaptureThresholds.maxFaceDisplacement * 0.7;
+    } else if (faceFillRatio < CaptureThresholds.optimalMinFaceAreaRatio) {
+      // Face is far - be more lenient
+      adaptiveThreshold = CaptureThresholds.maxFaceDisplacement * 1.3;
+    }
+    
+    // Calculate stability score (0.0 = moving, 1.0 = perfectly still)
+    _stabilityScore = 1.0 - (motionScore / adaptiveThreshold).clamp(0.0, 1.0);
+    
+    // Only fail if movement is significant and consistent
+    if (motionScore > adaptiveThreshold && _motionHistory.length >= 3) {
+      // Check if motion is consistent (not just a single frame glitch)
+      bool isConsistentMotion = _isConsistentMotion();
+      if (isConsistentMotion) {
         _updateMotionTracking(faceRect, faceCenterX, faceCenterY);
+        _consecutiveStableFrames = 0;
         final result = AnalysisResult(
           status: CaptureStatus.moving, 
           instruction: "Hold still\nKeep your head steady",
@@ -450,13 +496,29 @@ class FaceCaptureLogic {
         _isAnalyzing = false;
         return result;
       }
+    } else if (motionScore <= adaptiveThreshold) {
+      _consecutiveStableFrames++;
     }
 
-    // 9. Sharpness/Blur Detection (relaxed - only fail if very blurry)
+    // 9. Enhanced Sharpness/Blur Detection with adaptive threshold
     double sharpness = _calculateSharpness(frame, faceRect);
-    // Only fail if significantly blurry, allow some tolerance
-    if (sharpness < CaptureThresholds.minSharpness * CaptureThresholds.sharpnessToleranceMultiplier) {
+    
+    // Adaptive sharpness threshold based on face size and brightness
+    double adaptiveSharpnessThreshold = _adaptiveSharpnessThreshold;
+    if (brightness < CaptureThresholds.minBrightness) {
+      // Low light - be more lenient with sharpness
+      adaptiveSharpnessThreshold = CaptureThresholds.minSharpness * 0.6;
+    } else if (brightness > 200) {
+      // Very bright - can be stricter
+      adaptiveSharpnessThreshold = CaptureThresholds.minSharpness * 1.2;
+    }
+    
+    // Progressive sharpness validation (warn before failing)
+    double sharpnessRatio = sharpness / adaptiveSharpnessThreshold;
+    if (sharpnessRatio < 0.5) {
+      // Very blurry - fail immediately
       _updateMotionTracking(faceRect, faceCenterX, faceCenterY);
+      _consecutiveStableFrames = 0;
       final result = AnalysisResult(
         status: CaptureStatus.moving, 
         instruction: "Hold still for a moment\nImage is blurry",
@@ -466,28 +528,73 @@ class FaceCaptureLogic {
         landmarks: landmarks,
       );
       lastResult = result;
+      // Update metrics
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
+    } else if (sharpnessRatio < 0.8 && _stabilityScore < 0.7) {
+      // Slightly blurry and moving - warn but don't fail yet
+      // Continue to ready state but with lower confidence
+    }
+
+    // All validations passed - face is in optimal range for model processing
+    // Update motion tracking
+    _updateMotionTracking(faceRect, faceCenterX, faceCenterY);
+    _consecutiveStableFrames++;
+    
+    // Calculate overall quality score (0.0 to 1.0)
+    double qualityScore = _calculateQualityScore(
+      faceFillRatio,
+      centerOffsetXAbs,
+      centerOffsetYAbs,
+      sharpness,
+      brightness,
+      _stabilityScore,
+    );
+    
+    // Only mark as ready if quality score is high enough
+    // This ensures we only capture when everything is truly optimal
+    if (qualityScore >= 0.75 && _consecutiveStableFrames >= 2) {
+      final result = AnalysisResult(
+        status: CaptureStatus.ready, 
+        instruction: "Perfect! Hold still\nPhoto will be taken automatically",
+        faceRect: faceRect,
+        sharpness: sharpness,
+        brightness: brightness,
+        positionInfo: positionInfo,
+        landmarks: landmarks,
+      );
+      lastResult = result;
+      // Update metrics
+      _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
+      _isAnalyzing = false;
+      return result;
+    } else {
+      // Almost ready - provide encouraging feedback
+      String instruction = "Almost there! ";
+      if (qualityScore < 0.6) {
+        instruction += "Adjust your position slightly";
+      } else if (_stabilityScore < 0.8) {
+        instruction += "Hold still a bit longer";
+      } else {
+        instruction += "Keep holding still";
+      }
+      
+      final result = AnalysisResult(
+        status: CaptureStatus.moving, 
+        instruction: instruction,
+        faceRect: faceRect,
+        sharpness: sharpness,
+        brightness: brightness,
+        positionInfo: positionInfo,
+        landmarks: landmarks,
+      );
+      lastResult = result;
+      // Update metrics
       _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
       _isAnalyzing = false;
       return result;
     }
-
-    // All validations passed - face is in optimal range for model processing
-    // Reset motion tracking for fresh start
-    _resetMotionTracking();
-    _updateMotionTracking(faceRect, faceCenterX, faceCenterY);
-    final result = AnalysisResult(
-      status: CaptureStatus.ready, 
-      instruction: "Perfect! Hold still\nPhoto will be taken automatically",
-      faceRect: faceRect,
-      sharpness: sharpness,
-      brightness: brightness,
-      positionInfo: positionInfo,
-      landmarks: landmarks,
-    );
-    lastResult = result;
-    _currentMetrics = FaceAnalysisMetrics.fromAnalysisResult(result, positionInfo);
-    _isAnalyzing = false;
-    return result;
     } catch (e, stackTrace) {
       // Handle any unexpected errors
       debugPrint("Unexpected error in analyze: $e");
@@ -606,5 +713,102 @@ class FaceCaptureLogic {
     _previousFaceRect = null;
     _previousFaceCenterX = null;
     _previousFaceCenterY = null;
+    _motionHistory.clear();
+    _consecutiveStableFrames = 0;
+    _stabilityScore = 0.0;
   }
+  
+  /// Calculate motion score based on multi-frame history
+  double _calculateMotionScore(double centerX, double centerY, double imageWidth, double imageHeight) {
+    if (_motionHistory.isEmpty || _previousFaceCenterX == null || _previousFaceCenterY == null) {
+      return 0.0;
+    }
+    
+    // Calculate displacement from previous frame
+    double displacementX = (centerX - _previousFaceCenterX!) / imageWidth;
+    double displacementY = (centerY - _previousFaceCenterY!) / imageHeight;
+    double instantDisplacement = sqrt(displacementX * displacementX + displacementY * displacementY);
+    
+    // Calculate average displacement over history (smoother detection)
+    if (_motionHistory.length >= 2) {
+      double totalDisplacement = 0.0;
+      for (int i = 1; i < _motionHistory.length; i++) {
+        double dx = (_motionHistory[i]['x']! - _motionHistory[i-1]['x']!).abs();
+        double dy = (_motionHistory[i]['y']! - _motionHistory[i-1]['y']!).abs();
+        totalDisplacement += sqrt(dx * dx + dy * dy);
+      }
+      double avgDisplacement = totalDisplacement / (_motionHistory.length - 1);
+      
+      // Use weighted average: 70% instant, 30% average (responds quickly but smooth)
+      return instantDisplacement * 0.7 + avgDisplacement * 0.3;
+    }
+    
+    return instantDisplacement;
+  }
+  
+  /// Check if motion is consistent (not just a single frame glitch)
+  bool _isConsistentMotion() {
+    if (_motionHistory.length < 3) return false;
+    
+    // Check if last 3 frames show consistent movement
+    int movingFrames = 0;
+    for (int i = _motionHistory.length - 3; i < _motionHistory.length - 1; i++) {
+      double dx = (_motionHistory[i+1]['x']! - _motionHistory[i]['x']!).abs();
+      double dy = (_motionHistory[i+1]['y']! - _motionHistory[i]['y']!).abs();
+      double displacement = sqrt(dx * dx + dy * dy);
+      
+      if (displacement > _adaptiveMotionThreshold * 0.8) {
+        movingFrames++;
+      }
+    }
+    
+    // Motion is consistent if at least 2 out of 3 frames show movement
+    return movingFrames >= 2;
+  }
+  
+  /// Calculate overall quality score (0.0 to 1.0)
+  double _calculateQualityScore(
+    double faceFillRatio,
+    double centerOffsetX,
+    double centerOffsetY,
+    double sharpness,
+    double brightness,
+    double stabilityScore,
+  ) {
+    // Distance score (0.0 to 1.0) - optimal range gets 1.0
+    double distanceScore = 1.0;
+    if (faceFillRatio < CaptureThresholds.optimalMinFaceAreaRatio) {
+      distanceScore = faceFillRatio / CaptureThresholds.optimalMinFaceAreaRatio;
+    } else if (faceFillRatio > CaptureThresholds.optimalMaxFaceAreaRatio) {
+      distanceScore = 1.0 - ((faceFillRatio - CaptureThresholds.optimalMaxFaceAreaRatio) / 
+                             (CaptureThresholds.maxFaceAreaRatio - CaptureThresholds.optimalMaxFaceAreaRatio));
+    }
+    
+    // Centering score (0.0 to 1.0) - perfectly centered gets 1.0
+    double maxOffset = max(centerOffsetX, centerOffsetY);
+    double centeringScore = 1.0 - (maxOffset / CaptureThresholds.maxCenterOffset).clamp(0.0, 1.0);
+    
+    // Sharpness score (0.0 to 1.0)
+    double sharpnessScore = (sharpness / _adaptiveSharpnessThreshold).clamp(0.0, 1.0);
+    
+    // Brightness score (0.0 to 1.0) - optimal around 150-200
+    double brightnessScore = 1.0;
+    if (brightness < CaptureThresholds.minBrightness) {
+      brightnessScore = brightness / CaptureThresholds.minBrightness;
+    } else if (brightness > 220) {
+      brightnessScore = 1.0 - ((brightness - 220) / 35).clamp(0.0, 1.0);
+    }
+    
+    // Weighted combination (stability is most important)
+    double qualityScore = (
+      distanceScore * 0.20 +
+      centeringScore * 0.15 +
+      sharpnessScore * 0.20 +
+      brightnessScore * 0.15 +
+      stabilityScore * 0.30
+    );
+    
+    return qualityScore.clamp(0.0, 1.0);
+  }
+  
 }

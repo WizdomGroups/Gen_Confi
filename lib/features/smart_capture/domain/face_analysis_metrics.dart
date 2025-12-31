@@ -40,6 +40,8 @@ class FaceAnalysisMetrics {
   // Overall
   final double overallQualityScore; // 0-100
   final bool isReadyForCapture;
+  final double? stabilityScore; // 0.0 to 1.0 - how stable the face is
+  final bool isStable; // Whether face is currently stable
   final List<String> recommendations; // What needs improvement
   
   // Visual Data
@@ -72,6 +74,8 @@ class FaceAnalysisMetrics {
     this.faceCoverage = 0,
     this.overallQualityScore = 0,
     this.isReadyForCapture = false,
+    this.stabilityScore,
+    this.isStable = false,
     this.recommendations = const [],
     this.faceRect,
     this.landmarks,
