@@ -8,5 +8,10 @@ class ApiEndpoints {
 
   // Users
   static const String users = '/users';
+  static const String updateMe = '/users/me';
+  static const String uploadAvatar = '/users/me/avatar';
   static String userById(int id) => '/users/$id';
+
+  // Static files
+  static const String uploads = '/uploads';
 }

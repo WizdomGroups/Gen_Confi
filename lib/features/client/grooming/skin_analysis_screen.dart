@@ -1,13 +1,14 @@
-// FILE: lib/features/client/grooming/skin_analysis_screen.dart
-
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/layout/base_scaffold.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
+import 'package:gen_confi/services/auth_store.dart';
 
 class SkinAnalysisScreen extends StatefulWidget {
-  const SkinAnalysisScreen({super.key});
+  final String? imagePath;
+  const SkinAnalysisScreen({super.key, this.imagePath});
 
   @override
   State<SkinAnalysisScreen> createState() => _SkinAnalysisScreenState();
@@ -15,9 +16,20 @@ class SkinAnalysisScreen extends StatefulWidget {
 
 class _SkinAnalysisScreenState extends State<SkinAnalysisScreen> {
   bool _isAnalyzing = false;
-  String _statusMessage = 'Align your face within the frame';
+  String _statusMessage = 'Face Detected. Ready for analysis.';
   double _scanProgress = 0.0;
   Timer? _analysisTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-start analysis if an image is provided
+    if (widget.imagePath != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startAnalysis();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -33,7 +45,9 @@ class _SkinAnalysisScreenState extends State<SkinAnalysisScreen> {
 
     // Simulate analysis steps
     int step = 0;
-    _analysisTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
+    _analysisTimer = Timer.periodic(const Duration(milliseconds: 1000), (
+      timer,
+    ) {
       if (!mounted) return;
 
       setState(() {
@@ -49,58 +63,82 @@ class _SkinAnalysisScreenState extends State<SkinAnalysisScreen> {
         else if (step >= 4) {
           _statusMessage = 'Analysis Complete!';
           timer.cancel();
-          _navigateToHub();
+          _onAnalysisComplete();
         }
       });
     });
   }
 
-  void _navigateToHub() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+  void _onAnalysisComplete() async {
+    // Save to AuthStore (legacy for now)
+    if (widget.imagePath != null) {
+      AuthStore().setGroomingCompleted(true, imagePath: widget.imagePath);
+    }
+
+    await Future.delayed(const Duration(milliseconds: 1000));
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(context, AppRoutes.clientGroomingHub);
+    // After analysis, we usually go to the results or back to home
+    // The user said "once signup is successfull it should go to the home screen and with their user profile should be need analyse and make this"
+    // So after analysis we should probably go back to the home shell which will now show the results
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.clientShell,
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get image path from arguments if not provided in constructor
+    final String? imagePath =
+        widget.imagePath ??
+        (ModalRoute.of(context)?.settings.arguments
+            as Map<String, dynamic>?)?['imagePath'];
+
     return BaseScaffold(
-      title: 'Skin Analysis',
+      title: 'AI Analysis',
       showBackButton: true,
       body: Stack(
         children: [
-          // 1. Camera Viewfinder Simulation (Background)
-          Container(
-            color: Colors.black,
-            child: Center(
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.6),
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.6),
-                    ],
-                  ),
-                ),
-                child: const Icon(
-                  Icons.face_retouching_natural,
-                  size: 120,
-                  color: Colors.white24,
+          // 1. Captured Image Background
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              child: imagePath != null
+                  ? Image.file(File(imagePath), fit: BoxFit.cover)
+                  : const Center(
+                      child: Icon(
+                        Icons.face_retouching_natural,
+                        size: 120,
+                        color: Colors.white24,
+                      ),
+                    ),
+            ),
+          ),
+
+          // Dark overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.4),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.7),
+                  ],
                 ),
               ),
             ),
           ),
 
-          // 2. Overlay Frame
+          // 2. Overlay Frame & Scanner
           Center(
             child: Container(
               width: 300,
-              height: 400,
+              height: 420,
               decoration: BoxDecoration(
                 border: Border.all(
                   color: _isAnalyzing
@@ -108,30 +146,29 @@ class _SkinAnalysisScreenState extends State<SkinAnalysisScreen> {
                       : Colors.white.withOpacity(0.5),
                   width: 2,
                 ),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(32),
               ),
               child: _isAnalyzing
                   ? Stack(
                       children: [
                         // Scanning Line Animation
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 800),
-                          margin: EdgeInsets.only(
-                            top:
-                                (400 *
-                                    (_scanProgress > 1 ? 1 : _scanProgress)) -
-                                2,
-                          ),
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.5),
-                                blurRadius: 10,
-                                spreadRadius: 2,
-                              ),
-                            ],
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 100),
+                          top: 420 * (_scanProgress > 1 ? 1 : _scanProgress),
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.8),
+                                  blurRadius: 15,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -148,50 +185,71 @@ class _SkinAnalysisScreenState extends State<SkinAnalysisScreen> {
 
                 // Status Text
                 Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
-                    vertical: 12,
+                    vertical: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Text(
-                    _statusMessage,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                    color: Colors.black.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.3),
                     ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isAnalyzing && _scanProgress < 1.0)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      if (_isAnalyzing && _scanProgress < 1.0)
+                        const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          _statusMessage,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 60),
 
-                // Capture Button
+                // Manual Trigger if not started
                 if (!_isAnalyzing)
-                  GestureDetector(
-                    onTap: _startAnalysis,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
+                  ElevatedButton(
+                    onPressed: _startAnalysis,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 15,
                       ),
-                      child: Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                        ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                  )
-                else
-                  const SizedBox(
-                    height: 80,
-                  ), // Placeholder to keep layout stable
+                    child: const Text(
+                      "START ANALYSIS",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
 
                 const SizedBox(height: 40),
               ],

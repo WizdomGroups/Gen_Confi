@@ -1,45 +1,43 @@
-import 'dart:io'; // Added for File usage
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/layout/base_scaffold.dart';
+import 'package:gen_confi/core/providers/auth_provider.dart';
 import 'package:gen_confi/core/utils/theme_extensions.dart';
 import 'package:gen_confi/core/widgets/app_card.dart';
-import 'package:gen_confi/services/auth_store.dart';
-import 'package:gen_confi/services/onboarding_store.dart';
+import 'package:gen_confi/core/constants/api_constants.dart';
 import 'package:gen_confi/services/theme_store.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  // We rely on AuthStore for the source of truth, but setState triggers rebuild
-
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
-    final draft = OnboardingStore().draft;
-    final userName = AuthStore().userEmail?.split('@')[0] ?? "Alex";
-    final gender = draft.gender ?? "Client";
+    final user = ref.watch(currentUserProvider);
+
+    final userName = user?.name ?? user?.email.split('@')[0] ?? "User";
+    final userEmail = user?.email ?? "Not set";
 
     return BaseScaffold(
       title: "Profile",
       showBackButton: true,
-      useResponsiveContainer: false,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(
             maxWidth: AppSpacing.maxContentWidth,
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 20),
+            padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
               children: [
-                _buildProfileHeader(context, userName, gender),
+                _buildProfileHeader(context, user, userName),
                 const SizedBox(height: 32),
 
                 Padding(
@@ -51,7 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         context,
                         icon: Icons.email_outlined,
                         title: "Email",
-                        trailingText: AuthStore().userEmail ?? "Not set",
+                        subtitle: userEmail,
                       ),
                       _buildListTile(
                         context,
@@ -66,13 +64,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: "Log Out",
                         titleColor: Colors.red,
                         iconColor: Colors.red,
-                        onTap: () {
-                          AuthStore().logout();
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            AppRoutes.login,
-                            (route) => false,
-                          );
+                        onTap: () async {
+                          await ref.read(authProvider.notifier).logout();
+                          if (context.mounted) {
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              AppRoutes.login,
+                              (route) => false,
+                            );
+                          }
                         },
                       ),
                     ],
@@ -87,30 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(
-    BuildContext context,
-    String userName,
-    String gender,
-  ) {
-    // Current Avatar Logic
-    // 1. AuthStore.avatarUrl
-    // 2. AuthStore.groomingImagePath (Real selfie) -> Maybe use this if no avatar? User requested "cartoon".
-    // Let's prioritize Avatar > Real Selfie > Default Icon
-
-    final avatarUrl = AuthStore().avatarUrl;
-    final realImage = AuthStore().groomingImagePath;
-
-    ImageProvider? imageProvider;
-    if (avatarUrl != null) {
-      if (avatarUrl.startsWith('http')) {
-        imageProvider = NetworkImage(avatarUrl);
-      } else {
-        imageProvider = AssetImage(avatarUrl); // For local assets if any
-      }
-    } else if (realImage != null) {
-      imageProvider = FileImage(File(realImage));
-    }
-
+  Widget _buildProfileHeader(BuildContext context, user, String userName) {
     return Column(
       children: [
         Stack(
@@ -120,27 +97,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 110,
               height: 110,
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: context.themeSurfaceElevated,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border, width: 4),
-                  boxShadow: [
+                border: Border.all(color: context.themeBorder, width: 4),
+                boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withOpacity(0.2),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
                 ],
-                image: imageProvider != null
-                    ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
-                    : null,
               ),
-              child: imageProvider == null
-                  ? const Icon(
-                      Icons.person_rounded,
-                      size: 55,
-                      color: AppColors.primary,
-                    )
-                  : null,
+              child: ClipOval(child: _buildAvatarImage(context, user)),
             ),
 
             // Edit Profile Info
@@ -155,32 +123,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.background, width: 2),
+                    border: Border.all(
+                      color: context.themeBackground,
+                      width: 2,
+                    ),
                   ),
                   child: const Icon(
                     Icons.edit_rounded,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-
-            // Cartoon Avatar Selection
-            Positioned(
-              left: 0,
-              bottom: 0,
-              child: GestureDetector(
-                onTap: () => _showAvatarSelectionSheet(context),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.background, width: 2),
-                  ),
-                  child: const Icon(
-                    Icons.emoji_emotions_rounded,
                     size: 16,
                     color: Colors.white,
                   ),
@@ -198,280 +147,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: context.themeTextPrimary,
           ),
         ),
-        // Removed "Client" label container as per user request
+        if (user?.gender != null)
+          Text(
+            user!.gender!,
+            style: TextStyle(fontSize: 14, color: context.themeTextSecondary),
+          ),
       ],
     );
   }
 
-  void _showAvatarSelectionSheet(BuildContext context) {
-    // Get gender from state or store
-    final draft = OnboardingStore().draft;
-    final gender = draft.gender ?? "Male"; // Default to Male if unknown
-
-    // Define seed lists based on gender
-    List<String> seeds;
-
-    // We will apply specific style constraints via URL params to ensure gender aesthetics
-    // Using 'avataaars' style from DiceBear
-
-    if (gender == "Female") {
-      seeds = [
-        'Bella',
-        'Sophia',
-        'Luna',
-        'Zoe',
-        'Ava',
-        'Mia',
-        'Lily',
-        'Chloe',
-        'Ruby',
-        'Emma',
-        'Grace',
-        'Ivy',
-      ];
-    } else if (gender == "Male") {
-      seeds = [
-        'Leo',
-        'Max',
-        'Liam',
-        'Kai',
-        'Noah',
-        'Ethan',
-        'Lucas',
-        'Mason',
-        'Logan',
-        'James',
-        'Felix',
-        'Aiden',
-      ];
-    } else {
-      // Mixed/Other
-      seeds = [
-        'Alex',
-        'Sky',
-        'Jordan',
-        'Taylor',
-        'Casey',
-        'Jamie',
-        'Riley',
-        'Avery',
-        'Morgan',
-        'Quinn',
-        'Rowan',
-        'Sage',
-      ];
-    }
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent, // For custom rounded aesthetic
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          height: MediaQuery.of(context).size.height * 0.6, // Taller sheet
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Drag Handle
-              Center(
-                child: Container(
-                  height: 4,
-                  width: 40,
-                  margin: const EdgeInsets.only(bottom: 24),
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Choose Avatar",
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Based on your profile ($gender)",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Maybe a filter button later?
-                ],
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.9,
-                  ),
-                  itemCount: seeds.length + 1, // +1 for Upload
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      // Upload Option
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          _showComingSoon(context, msg: "Opening Gallery...");
-                        },
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceElevated,
-                                  border: Border.all(
-                                    color: AppColors.primary.withOpacity(0.5),
-                                    width: 1,
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.add_a_photo_rounded,
-                                    color: AppColors.primary,
-                                    size: 28,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              "Upload",
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    final seed = seeds[index - 1];
-                    // Construct URL with constraints
-                    // Using 9.x API
-                    String url =
-                        "https://api.dicebear.com/9.x/avataaars/png?seed=$seed&backgroundColor=b6e3f4";
-
-                    if (gender == "Female") {
-                      // Female: Long hair styles, no facial hair
-                      url +=
-                          "&top=longHair,curvy,shaggyMullet,straight01,straight02,straightStrand&facialHairProbability=0";
-                    } else if (gender == "Male") {
-                      // Male: Short hair styles, some facial hair allowed
-                      url +=
-                          "&top=shortFlat,shortRound,shortWaved,caesar,caesarSidePart,dreads,frizzle&facialHairProbability=50";
-                    }
-                    // 'Other' uses default randomness
-
-                    return GestureDetector(
-                      onTap: () {
-                        // Update Store
-                        AuthStore().setAvatarUrl(url);
-                        // Force refresh
-                        setState(() {});
-                        Navigator.pop(ctx);
-                      },
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                                border: Border.all(
-                                  color: AppColors.border,
-                                  width: 2,
-                                ),
-                              ),
-                              child: ClipOval(
-                                child: Image.network(
-                                  url,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                        if (loadingProgress == null)
-                                          return child;
-                                        return Container(
-                                          color: AppColors.surfaceElevated,
-                                          child: const Center(
-                                            child: SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      errorBuilder: (_, __, ___) => Container(
-                                        color: AppColors.surfaceElevated,
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.error_outline,
-                                            color: AppColors.textMuted,
-                                          ),
-                                        ),
-                                      ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            seed, // Using seed name as a label for now
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+  Widget _buildAvatarImage(BuildContext context, user) {
+    if (user?.avatarUrl != null) {
+      final url = user!.avatarUrl!;
+      if (url.startsWith('assets/')) {
+        return Image.asset(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholderIcon(),
         );
-      },
-    );
+      } else if (url.startsWith('http')) {
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholderIcon(),
+        );
+      } else {
+        // Handle relative paths from our backend
+        final cleanUrl = url.startsWith('/') ? url : '/$url';
+        return Image.network(
+          '${ApiConstants.baseUrl}$cleanUrl',
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholderIcon(),
+        );
+      }
+    }
+    return _buildPlaceholderIcon();
   }
 
-  // ... _buildSection and _buildListTile are same ...
-  // Re-pasting helper methods for completeness within the StatefulWidget
+  Widget _buildPlaceholderIcon() {
+    return Icon(
+      Icons.person_rounded,
+      size: 55,
+      color: AppColors.primary.withOpacity(0.5),
+    );
+  }
 
   Widget _buildSection({
     required String title,
@@ -502,7 +221,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   child,
                   if (index < children.length - 1)
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    Divider(
+                      height: 1,
+                      color: context.themeBorder.withOpacity(0.5),
+                    ),
                 ],
               );
             }).toList(),
@@ -575,10 +297,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               )
             else if (onTap != null)
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 14,
-                color: Color(0xFFCBD5E1),
+                color: context.themeTextSecondary.withOpacity(0.5),
               ),
           ],
         ),
@@ -588,14 +310,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildThemeToggle(BuildContext context) {
     final themeStore = ThemeStore();
-    
     return ValueListenableBuilder<bool>(
       valueListenable: themeStore.themeNotifier,
       builder: (context, isDarkMode, child) {
         return InkWell(
-          onTap: () {
-            themeStore.toggleTheme();
-          },
+          onTap: () => themeStore.toggleTheme(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             child: Row(
@@ -603,11 +322,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (AppColors.primary).withOpacity(0.1),
+                    color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                    isDarkMode
+                        ? Icons.dark_mode_rounded
+                        : Icons.light_mode_rounded,
                     size: 20,
                     color: AppColors.primary,
                   ),
@@ -638,9 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 Switch(
                   value: isDarkMode,
-                  onChanged: (value) {
-                    themeStore.setTheme(value);
-                  },
+                  onChanged: (value) => themeStore.setTheme(value),
                   activeColor: AppColors.primary,
                 ),
               ],

@@ -8,10 +8,7 @@ class LoginRequest {
   final String email;
   final String password;
 
-  LoginRequest({
-    required this.email,
-    required this.password,
-  });
+  LoginRequest({required this.email, required this.password});
 
   factory LoginRequest.fromJson(Map<String, dynamic> json) =>
       _$LoginRequestFromJson(json);
@@ -25,12 +22,14 @@ class SignupRequest {
   final String email;
   final String phone;
   final String password;
+  final String gender;
 
   SignupRequest({
     required this.name,
     required this.email,
     required this.phone,
     required this.password,
+    required this.gender,
   });
 
   factory SignupRequest.fromJson(Map<String, dynamic> json) =>
@@ -58,4 +57,3 @@ class LoginResponse {
 
   Map<String, dynamic> toJson() => _$LoginResponseToJson(this);
 }
-

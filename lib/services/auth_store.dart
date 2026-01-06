@@ -12,12 +12,12 @@ class AuthStore {
   // Onboarding status (in-memory mock)
   bool _clientOnboardingComplete = false;
   bool _expertOnboardingComplete = false;
-  
+
   // Grooming status (in-memory mock)
   bool _hasCompletedGrooming = false;
   String? _groomingImagePath;
   String? _avatarUrl;
-  
+
   // Getters
   UserRole get role => _currentRole;
   String? get userEmail => _currentUserEmail;
@@ -25,7 +25,7 @@ class AuthStore {
   bool get hasCompletedGrooming => _hasCompletedGrooming;
   String? get groomingImagePath => _groomingImagePath;
   String? get avatarUrl => _avatarUrl;
-  
+
   void setGroomingCompleted(bool value, {String? imagePath}) {
     _hasCompletedGrooming = value;
     if (imagePath != null) {
@@ -70,6 +70,11 @@ class AuthStore {
   void logout() {
     _currentRole = UserRole.none;
     _currentUserEmail = null;
+    _clientOnboardingComplete = false;
+    _expertOnboardingComplete = false;
+    _hasCompletedGrooming = false;
+    _groomingImagePath = null;
+    _avatarUrl = null;
   }
 
   // Fake Signup Logic

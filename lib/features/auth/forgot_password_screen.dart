@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:gen_confi/core/constants/app_colors.dart';
+import 'package:gen_confi/core/providers/auth_provider.dart';
 
 enum ResetState { email, otp, newPassword }
 
-class PremiumForgotPasswordScreen extends StatefulWidget {
+class PremiumForgotPasswordScreen extends ConsumerStatefulWidget {
   const PremiumForgotPasswordScreen({super.key});
 
   @override
-  State<PremiumForgotPasswordScreen> createState() => _PremiumForgotPasswordScreenState();
+  ConsumerState<PremiumForgotPasswordScreen> createState() =>
+      _PremiumForgotPasswordScreenState();
 }
 
-class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScreen> {
+class _PremiumForgotPasswordScreenState
+    extends ConsumerState<PremiumForgotPasswordScreen> {
   ResetState _currentState = ResetState.email;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -32,19 +37,76 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
   }
 
   void _handleAction() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-    setState(() {
-      _isLoading = false;
-      if (_currentState == ResetState.email) {
-        _currentState = ResetState.otp;
-      } else if (_currentState == ResetState.otp) {
-        _currentState = ResetState.newPassword;
-      } else {
-        // Handle final password reset success
-        Navigator.pop(context);
+    final notifier = ref.read(authProvider.notifier);
+
+    // Clear previous errors
+    // ref.refresh(authErrorProvider); // Optional, might not be needed if state clears
+
+    if (_currentState == ResetState.email) {
+      final email = _emailController.text.trim();
+      if (email.isEmpty) {
+        _showError('Please enter your email');
+        return;
       }
-    });
+
+      final success = await notifier.forgotPassword(email);
+      if (success) {
+        setState(() => _currentState = ResetState.otp);
+        _showSuccess('Reset code sent! Check your terminal/logs.');
+      }
+    } else if (_currentState == ResetState.otp) {
+      final token = _otpController.text.trim();
+      if (token.isEmpty) {
+        _showError('Please enter the verification code');
+        return;
+      }
+      // Since we don't have a verify-token-only endpoint, we assume it's valid
+      // and move to password creation. The final check happens there.
+      setState(() => _currentState = ResetState.newPassword);
+    } else if (_currentState == ResetState.newPassword) {
+      final newPass = _passwordController.text.trim();
+      final confirmPass = _confirmPasswordController.text.trim();
+      final token = _otpController.text.trim();
+
+      if (newPass.isEmpty || confirmPass.isEmpty) {
+        _showError('Please fill all fields');
+        return;
+      }
+
+      if (newPass != confirmPass) {
+        _showError('Passwords do not match');
+        return;
+      }
+
+      final success = await notifier.resetPassword(
+        token: token,
+        newPassword: newPass,
+      );
+      if (success) {
+        _showSuccess('Password reset successfully!');
+        if (mounted) Navigator.pop(context);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.inter()),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.inter()),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -52,6 +114,13 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
+
+    // Listen for errors from provider
+    ref.listen(authErrorProvider, (previous, next) {
+      if (next != null) {
+        _showError(next);
+      }
+    });
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -84,8 +153,13 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
                   alignment: Alignment.centerLeft,
                   child: IconButton(
                     onPressed: () {
-                      if (_currentState == ResetState.email) Navigator.pop(context);
-                      else setState(() => _currentState = ResetState.values[_currentState.index - 1]);
+                      if (_currentState == ResetState.email)
+                        Navigator.pop(context);
+                      else
+                        setState(
+                          () => _currentState =
+                              ResetState.values[_currentState.index - 1],
+                        );
                     },
                     icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
@@ -94,7 +168,7 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
                     ),
                   ),
                 ),
-                
+
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -103,7 +177,7 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
                       child: Column(
                         children: [
                           const SizedBox(height: 20),
-                          
+
                           // Header Section
                           Column(
                             children: [
@@ -124,8 +198,8 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
                                 style: GoogleFonts.inter(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark 
-                                      ? AppColors.textMutedDark 
+                                  color: isDark
+                                      ? AppColors.textMutedDark
                                       : AppColors.textMutedLight,
                                   letterSpacing: 2.5,
                                 ),
@@ -163,12 +237,18 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
   Widget _buildStateIcon() {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     IconData icon;
     switch (_currentState) {
-      case ResetState.email: icon = Icons.lock_reset_rounded; break;
-      case ResetState.otp: icon = Icons.mark_email_read_outlined; break;
-      case ResetState.newPassword: icon = Icons.security_rounded; break;
+      case ResetState.email:
+        icon = Icons.lock_reset_rounded;
+        break;
+      case ResetState.otp:
+        icon = Icons.mark_email_read_outlined;
+        break;
+      case ResetState.newPassword:
+        icon = Icons.security_rounded;
+        break;
     }
     return Container(
       padding: const EdgeInsets.all(2),
@@ -186,34 +266,59 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
 
   String _getHeaderSubtitle() {
     switch (_currentState) {
-      case ResetState.email: return 'FORGOT PASSWORD';
-      case ResetState.otp: return 'VERIFY CODE';
-      case ResetState.newPassword: return 'NEW CREDENTIALS';
+      case ResetState.email:
+        return 'FORGOT PASSWORD';
+      case ResetState.otp:
+        return 'VERIFY CODE';
+      case ResetState.newPassword:
+        return 'NEW CREDENTIALS';
     }
   }
 
   Widget _buildFormContent() {
     switch (_currentState) {
       case ResetState.email:
-        return _buildInputGroup(
-          'Reset Link',
-          'Enter email to receive OTP',
-          [_buildTextField(_emailController, 'Email Address', Icons.email_outlined)],
-        );
+        return _buildInputGroup('Reset Link', 'Enter email to receive OTP', [
+          _buildTextField(
+            _emailController,
+            'Email Address',
+            Icons.email_outlined,
+          ),
+        ]);
       case ResetState.otp:
         return _buildInputGroup(
-          'Check Email',
-          'Enter the 4-digit code sent to you',
-          [_buildTextField(_otpController, 'OTP Code', Icons.pin_rounded, isCenter: true)],
+          'Verification Code',
+          'Enter the code/token provided',
+          // Changed isCenter to false to accommodate long tokens
+          [
+            _buildTextField(
+              _otpController,
+              'Enter Token',
+              Icons.vpn_key_rounded,
+              isCenter: false,
+            ),
+          ],
         );
       case ResetState.newPassword:
         return _buildInputGroup(
           'Reset Password',
           'Set your new secure password',
           [
-            _buildTextField(_passwordController, 'New Password', Icons.lock_outline, isPass: true, isNewPassword: true),
+            _buildTextField(
+              _passwordController,
+              'New Password',
+              Icons.lock_outline,
+              isPass: true,
+              isNewPassword: true,
+            ),
             const SizedBox(height: 16),
-            _buildTextField(_confirmPasswordController, 'Confirm Password', Icons.lock_outline, isPass: true, isNewPassword: false),
+            _buildTextField(
+              _confirmPasswordController,
+              'Confirm Password',
+              Icons.lock_outline,
+              isPass: true,
+              isNewPassword: false,
+            ),
           ],
         );
     }
@@ -223,7 +328,7 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
-    
+
     return Column(
       key: ValueKey(title),
       children: [
@@ -241,8 +346,8 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             fontSize: 13,
-            color: isDark 
-                ? AppColors.textSecondaryDark 
+            color: isDark
+                ? AppColors.textSecondaryDark
                 : AppColors.textSecondaryLight,
           ),
         ),
@@ -252,13 +357,21 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, {bool isPass = false, bool isCenter = false, bool isNewPassword = false}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hint,
+    IconData icon, {
+    bool isPass = false,
+    bool isCenter = false,
+    bool isNewPassword = false,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
-    
-    final bool obscureText = isPass && (isNewPassword ? _obscurePassword : _obscureConfirmPassword);
-    
+
+    final bool obscureText =
+        isPass && (isNewPassword ? _obscurePassword : _obscureConfirmPassword);
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -272,6 +385,7 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
         controller: controller,
         obscureText: obscureText,
         textAlign: isCenter ? TextAlign.center : TextAlign.start,
+        // Changed to text input type to allow alphanumeric tokens
         keyboardType: isCenter ? TextInputType.number : TextInputType.text,
         style: TextStyle(
           color: colorScheme.onSurface,
@@ -282,25 +396,25 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.inter(
-            color: isDark 
-                ? AppColors.textMutedDark 
-                : AppColors.textMutedLight,
+            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
             fontSize: 14,
             letterSpacing: isCenter ? 4 : 0,
           ),
-          prefixIcon: isCenter ? null : Icon(
-            icon,
-            color: isDark 
-                ? AppColors.textSecondaryDark 
-                : AppColors.textSecondaryLight,
-            size: 20,
-          ),
+          prefixIcon: isCenter
+              ? null
+              : Icon(
+                  icon,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                  size: 20,
+                ),
           suffixIcon: isPass
               ? IconButton(
                   icon: Icon(
                     obscureText ? Icons.visibility_off : Icons.visibility,
-                    color: isDark 
-                        ? AppColors.textMutedDark 
+                    color: isDark
+                        ? AppColors.textMutedDark
                         : AppColors.textMutedLight,
                     size: 18,
                   ),
@@ -316,7 +430,10 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 18,
+            horizontal: 16,
+          ),
         ),
       ),
     );
@@ -325,11 +442,11 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
   Widget _buildActionButton() {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
-    String label = _currentState == ResetState.email 
-        ? 'SEND OTP' 
+
+    String label = _currentState == ResetState.email
+        ? 'SEND CODE'
         : (_currentState == ResetState.otp ? 'VERIFY' : 'UPDATE PASSWORD');
-    
+
     return Container(
       width: double.infinity,
       height: 54,
@@ -341,27 +458,36 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
             color: AppColors.gradientStart.withOpacity(isDark ? 0.2 : 0.15),
             blurRadius: 15,
             offset: const Offset(0, 8),
-          )
+          ),
         ],
       ),
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleAction,
+        onPressed: () {
+          final isLoading = ref.read(authLoadingProvider);
+          if (!isLoading) _handleAction();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           disabledBackgroundColor: Colors.transparent,
         ),
-        child: _isLoading 
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            )
-          : Text(
+        child: Consumer(
+          builder: (context, ref, child) {
+            final isLoading = ref.watch(authLoadingProvider);
+            if (isLoading) {
+              return const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              );
+            }
+            return Text(
               label,
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w700,
@@ -369,7 +495,9 @@ class _PremiumForgotPasswordScreenState extends State<PremiumForgotPasswordScree
                 color: Colors.white,
                 fontSize: 14,
               ),
-            ),
+            );
+          },
+        ),
       ),
     );
   }

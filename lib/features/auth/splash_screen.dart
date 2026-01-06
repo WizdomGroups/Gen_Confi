@@ -4,24 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:gen_confi/services/auth_store.dart';
 
-class SplashScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gen_confi/core/providers/auth_provider.dart';
+
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with TickerProviderStateMixin {
   late AnimationController _mainController;
   late AnimationController _particleController;
   late AnimationController _pulseController;
-  
+
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _glowAnimation;
-  
+
   String _displayedText = "";
   final String _fullText = "GENCONFI";
   int _currentIndex = 0;
@@ -32,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    
+
     // Main animation controller
     _mainController = AnimationController(
       duration: const Duration(milliseconds: 1200),
@@ -77,19 +80,21 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   Future<void> _startAnimationSequence() async {
     await Future.delayed(const Duration(milliseconds: 300));
-    
+
     if (!mounted) return;
-    
+
     // Start main animations
     _mainController.forward();
-    
+
     // Start typewriter effect
-    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 150), (timer) {
+    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 150), (
+      timer,
+    ) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-      
+
       if (_currentIndex < _fullText.length) {
         setState(() {
           _currentIndex++;
@@ -100,14 +105,32 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       }
     });
 
-    // Wait and navigate
+    // Wait for minimum duration and ensure auth check is complete
     await Future.delayed(const Duration(milliseconds: 3500));
 
     if (!mounted) return;
-    
-    if (AuthStore().isLoggedIn) {
-      Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
+
+    // Check auth state using Riverpod
+    final authState = ref.read(authProvider);
+
+    if (authState.isAuthenticated && authState.user != null) {
+      final role = authState.user!.role.toLowerCase();
+      print('🔄 Auto-login successful: ${authState.user!.email} (Role: $role)');
+
+      switch (role) {
+        case 'admin':
+          Navigator.pushReplacementNamed(context, AppRoutes.adminDashboard);
+          break;
+        case 'expert':
+          Navigator.pushReplacementNamed(context, AppRoutes.expertHome);
+          break;
+        case 'client':
+        default:
+          Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
+          break;
+      }
     } else {
+      print('🚪 No active session found, navigating to login');
       Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
   }
@@ -154,7 +177,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     center: Alignment.center,
                     radius: 0.8,
                     colors: [
-                      AppColors.gradientStart.withOpacity(0.15 * _glowAnimation.value),
+                      AppColors.gradientStart.withOpacity(
+                        0.15 * _glowAnimation.value,
+                      ),
                       backgroundColor.withOpacity(0.0),
                     ],
                   ),
@@ -179,7 +204,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         AnimatedBuilder(
                           animation: _pulseController,
                           builder: (context, child) {
-                            final pulseScale = 1.0 + (_pulseController.value * 0.1);
+                            final pulseScale =
+                                1.0 + (_pulseController.value * 0.1);
                             return Transform.scale(
                               scale: pulseScale,
                               child: Container(
@@ -210,9 +236,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                   // Glow effect
                                   ShaderMask(
                                     shaderCallback: (bounds) {
-                                      return AppColors.primaryGradient.createShader(
-                                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                                      );
+                                      return AppColors.primaryGradient
+                                          .createShader(
+                                            Rect.fromLTWH(
+                                              0,
+                                              0,
+                                              bounds.width,
+                                              bounds.height,
+                                            ),
+                                          );
                                     },
                                     child: Text(
                                       _displayedText,
@@ -223,7 +255,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                         letterSpacing: 2.0,
                                         shadows: [
                                           Shadow(
-                                            color: AppColors.gradientStart.withOpacity(0.5 * _glowAnimation.value),
+                                            color: AppColors.gradientStart
+                                                .withOpacity(
+                                                  0.5 * _glowAnimation.value,
+                                                ),
                                             blurRadius: 30,
                                           ),
                                         ],
@@ -245,7 +280,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                   borderRadius: BorderRadius.circular(2),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.gradientStart.withOpacity(0.5),
+                                      color: AppColors.gradientStart
+                                          .withOpacity(0.5),
                                       blurRadius: 10,
                                       spreadRadius: 1,
                                     ),
@@ -258,7 +294,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                               // Tagline with fade-in
                               AnimatedOpacity(
                                 duration: const Duration(milliseconds: 800),
-                                opacity: _currentIndex >= _fullText.length ? 1.0 : 0.0,
+                                opacity: _currentIndex >= _fullText.length
+                                    ? 1.0
+                                    : 0.0,
                                 child: Column(
                                   children: [
                                     Text(
@@ -330,16 +368,17 @@ class ParticlePainter extends CustomPainter {
     // Create floating particles
     for (int i = 0; i < 20; i++) {
       final seed = i * 123.456;
-      final x = (math.sin(seed + animation * 2 * math.pi) * 0.3 + 0.5) * size.width;
+      final x =
+          (math.sin(seed + animation * 2 * math.pi) * 0.3 + 0.5) * size.width;
       final y = ((seed % 1000) / 1000 + animation) % 1.0 * size.height;
       final radius = 2.0 + (seed % 3);
-      
+
       final colors = [
         const Color(0xFF833AB4),
         const Color(0xFFFD1D1D),
         const Color(0xFFF77737),
       ];
-      
+
       paint.color = colors[i % 3].withOpacity(0.15);
       canvas.drawCircle(Offset(x, y), radius, paint);
     }
@@ -367,11 +406,7 @@ class ShimmerPainter extends CustomPainter {
           (isDark ? Colors.white : Colors.black).withOpacity(0.05),
           Colors.transparent,
         ],
-        stops: [
-          animation - 0.3,
-          animation,
-          animation + 0.3,
-        ],
+        stops: [animation - 0.3, animation, animation + 0.3],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);

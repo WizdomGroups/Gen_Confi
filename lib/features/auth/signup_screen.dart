@@ -21,6 +21,7 @@ class _PremiumSignupScreenState extends ConsumerState<PremiumSignupScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  String _selectedGender = 'Male';
 
   @override
   void dispose() {
@@ -142,6 +143,10 @@ class _PremiumSignupScreenState extends ConsumerState<PremiumSignupScreen> {
                             icon: Icons.lock_outline_rounded,
                             isPassword: true,
                           ),
+                          const SizedBox(height: 24),
+
+                          // Gender Selection
+                          _buildGenderSelection(),
 
                           const SizedBox(height: 24),
 
@@ -215,6 +220,109 @@ class _PremiumSignupScreenState extends ConsumerState<PremiumSignupScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGenderSelection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 12),
+          child: Text(
+            'SELECT GENDER',
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: isDark
+                  ? AppColors.textMutedDark
+                  : AppColors.textMutedLight,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildGenderCard(
+                'Male',
+                FontAwesomeIcons.mars,
+                _selectedGender == 'Male',
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildGenderCard(
+                'Female',
+                FontAwesomeIcons.venus,
+                _selectedGender == 'Female',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenderCard(String gender, IconData icon, bool isSelected) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedGender = gender),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withOpacity(isDark ? 0.2 : 0.1)
+              : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary
+                : (isDark ? AppColors.borderDark : AppColors.borderLight),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
+        ),
+        child: Column(
+          children: [
+            FaIcon(
+              icon,
+              color: isSelected
+                  ? AppColors.primary
+                  : (isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight),
+              size: 24,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              gender,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? AppColors.primary
+                    : (isDark
+                          ? AppColors.textMutedDark
+                          : AppColors.textMutedLight),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -384,6 +492,7 @@ class _PremiumSignupScreenState extends ConsumerState<PremiumSignupScreen> {
       email: email,
       phone: phone,
       password: password,
+      gender: _selectedGender,
     );
 
     if (!mounted) return;
@@ -397,7 +506,7 @@ class _PremiumSignupScreenState extends ConsumerState<PremiumSignupScreen> {
         print('🚀 Signup successful. Navigating to ${user.role} home');
         switch (user.role.toLowerCase()) {
           case 'client':
-            Navigator.pushReplacementNamed(context, AppRoutes.clientHome);
+            Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
             break;
           case 'expert':
             Navigator.pushReplacementNamed(context, AppRoutes.expertHome);
@@ -406,15 +515,15 @@ class _PremiumSignupScreenState extends ConsumerState<PremiumSignupScreen> {
             Navigator.pushReplacementNamed(context, AppRoutes.adminDashboard);
             break;
           default:
-            // Default to client home if role is unknown
-            Navigator.pushReplacementNamed(context, AppRoutes.clientHome);
+            // Default to client shell if role is unknown
+            Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
         }
       } else {
-        // Fallback to client home if user data not available
+        // Fallback to client shell if user data not available
         print(
-          '⚠️ User data unavailable after signup, defaulting to client home',
+          '⚠️ User data unavailable after signup, defaulting to client shell',
         );
-        Navigator.pushReplacementNamed(context, AppRoutes.clientHome);
+        Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
       }
     } else {
       // Show error from provider

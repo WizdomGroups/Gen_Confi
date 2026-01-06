@@ -24,7 +24,9 @@ class ApiConstants {
     // Mobile platforms - check if Android
     // On mobile, io will be dart:io, so Platform.isAndroid will work
     if (io.Platform.isAndroid) {
-      final url = 'http://10.0.2.2:8000/api/v1';
+      // Use computer's IP for physical device
+      final url = 'http://10.20.190.66:8000/api/v1';
+      // final url = 'http://10.0.2.2:8000/api/v1'; // Emulator
       // print('📱 [ApiConstants] Android detected - Using: $url');
       return url;
     }

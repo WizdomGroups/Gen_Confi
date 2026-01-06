@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
+import 'package:gen_confi/core/providers/auth_provider.dart';
+import 'package:gen_confi/core/constants/api_constants.dart';
 
-class ClientHomeScreen extends StatefulWidget {
+class ClientHomeScreen extends ConsumerStatefulWidget {
   const ClientHomeScreen({super.key});
 
   @override
-  State<ClientHomeScreen> createState() => _ClientHomeScreenState();
+  ConsumerState<ClientHomeScreen> createState() => _ClientHomeScreenState();
 }
 
-class _ClientHomeScreenState extends State<ClientHomeScreen>
+class _ClientHomeScreenState extends ConsumerState<ClientHomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -109,6 +112,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
   }
 
   Widget _buildAppBar() {
+    final user = ref.watch(currentUserProvider);
+
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Row(
@@ -133,15 +138,52 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                 onPressed: () {},
               ),
               const SizedBox(width: 8),
-              CircleAvatar(
-                backgroundColor: Colors.white.withOpacity(0.3),
-                child: const Icon(Icons.person, color: Colors.white),
+              GestureDetector(
+                onTap: () =>
+                    Navigator.pushNamed(context, AppRoutes.clientProfile),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: ClipOval(child: _buildAvatarImage(context, user)),
+                ),
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildAvatarImage(BuildContext context, user) {
+    if (user?.avatarUrl != null) {
+      final url = user!.avatarUrl!;
+      if (url.startsWith('http')) {
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholderIcon(),
+        );
+      } else {
+        // Assume local relative path from backend
+        final fullUrl =
+            "${ApiConstants.baseUrl.replaceAll('/api/v1', '')}/api/v1/$url";
+        return Image.network(
+          fullUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholderIcon(),
+        );
+      }
+    }
+    return _buildPlaceholderIcon();
+  }
+
+  Widget _buildPlaceholderIcon() {
+    return const Icon(Icons.person_rounded, size: 24, color: Colors.white);
   }
 
   Widget _buildWelcomeCard() {

@@ -9,6 +9,9 @@ class UserModel {
   final String name;
   final String? phone;
   final String role;
+  @JsonKey(name: 'avatar_url')
+  final String? avatarUrl;
+  final String? gender;
 
   UserModel({
     required this.id,
@@ -16,6 +19,8 @@ class UserModel {
     required this.name,
     this.phone,
     required this.role,
+    this.avatarUrl,
+    this.gender,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>
@@ -29,6 +34,8 @@ class UserModel {
     String? name,
     String? phone,
     String? role,
+    String? avatarUrl,
+    String? gender,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -36,7 +43,8 @@ class UserModel {
       name: name ?? this.name,
       phone: phone ?? this.phone,
       role: role ?? this.role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      gender: gender ?? this.gender,
     );
   }
 }
-

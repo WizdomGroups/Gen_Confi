@@ -43,6 +43,6 @@ flutter {
     source = "../.."
 }
 
-// dependencies {
-//     // Native dependencies removed as smart capture pipeline is deleted.
-// }
+dependencies {
+    implementation("androidx.appcompat:appcompat:1.6.1")
+}

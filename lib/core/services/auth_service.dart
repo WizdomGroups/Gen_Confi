@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'dart:convert';
 import 'package:gen_confi/core/api/api_endpoints.dart';
 import 'package:gen_confi/core/api/dio_client.dart';
@@ -40,6 +41,7 @@ class AuthService {
     required String email,
     required String phone,
     required String password,
+    required String gender,
   }) async {
     try {
       final request = SignupRequest(
@@ -47,6 +49,7 @@ class AuthService {
         email: email,
         phone: phone,
         password: password,
+        gender: gender,
       );
 
       final response = await _dioClient.post(
@@ -73,7 +76,44 @@ class AuthService {
   Future<UserModel> getCurrentUser() async {
     try {
       final response = await _dioClient.get(ApiEndpoints.me);
-      return UserModel.fromJson(response.data);
+      final user = UserModel.fromJson(response.data);
+      // Sync local storage
+      await TokenStorage.saveUser(jsonEncode(user.toJson()));
+      return user;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Update Profile
+  Future<UserModel> updateProfile(Map<String, dynamic> data) async {
+    try {
+      final response = await _dioClient.put(ApiEndpoints.updateMe, data: data);
+      final user = UserModel.fromJson(response.data);
+      // Sync local storage
+      await TokenStorage.saveUser(jsonEncode(user.toJson()));
+      return user;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Upload Avatar
+  Future<UserModel> uploadAvatar(String filePath) async {
+    try {
+      String fileName = filePath.split('/').last;
+      FormData formData = FormData.fromMap({
+        "file": await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+
+      final response = await _dioClient.post(
+        ApiEndpoints.uploadAvatar,
+        data: formData,
+      );
+      final user = UserModel.fromJson(response.data);
+      // Sync local storage
+      await TokenStorage.saveUser(jsonEncode(user.toJson()));
+      return user;
     } catch (e) {
       rethrow;
     }

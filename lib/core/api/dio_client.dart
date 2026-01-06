@@ -141,35 +141,67 @@ class DioClient {
   String _handleError(DioException error) {
     String errorMessage = 'An error occurred';
 
-    // Only print error summary to terminal for integration testing
+    // Print error details to terminal for easier debugging
     print(
       '❌ API Error: [${error.response?.statusCode}] ${error.requestOptions.path}',
     );
     if (error.response?.data != null) {
-      print('   Response: ${error.response?.data}');
+      print('   Response Data: ${error.response?.data}');
     }
 
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        errorMessage = 'Connection timeout. Please try again.';
+        errorMessage =
+            'Connection timeout. Please check your internet and try again.';
         break;
       case DioExceptionType.badResponse:
-        if (error.response != null) {
-          errorMessage =
-              error.response?.data['detail'] ??
-              'Server error: ${error.response?.statusCode}';
+        final response = error.response;
+        if (response != null) {
+          final data = response.data;
+
+          if (data is Map) {
+            // Priority 1: 'detail' as string
+            if (data['detail'] is String) {
+              errorMessage = data['detail'];
+            }
+            // Priority 2: 'message' as string (some backends use this)
+            else if (data['message'] is String) {
+              errorMessage = data['message'];
+            }
+            // Priority 3: FastAPI Validation Errors (detail is a list)
+            else if (data['detail'] is List) {
+              final List details = data['detail'];
+              if (details.isNotEmpty && details[0] is Map) {
+                errorMessage = details[0]['msg'] ?? 'Validation error';
+              } else {
+                errorMessage = 'Invalid input provided';
+              }
+            }
+          } else if (data is String && data.isNotEmpty) {
+            // Handle plain text or HTML error responses
+            if (data.contains('<!DOCTYPE html>')) {
+              errorMessage =
+                  'Server error: Received HTML instead of JSON. (404/500)';
+            } else {
+              errorMessage = data;
+            }
+          } else {
+            errorMessage = 'Server error: ${response.statusCode}';
+          }
         }
         break;
       case DioExceptionType.cancel:
         errorMessage = 'Request cancelled';
         break;
+      case DioExceptionType.connectionError:
       case DioExceptionType.unknown:
-        errorMessage = 'No internet connection. Please check your network.';
+        errorMessage =
+            'Connection error. Please check if the server is running and accessible.';
         break;
       default:
-        errorMessage = 'An unexpected error occurred';
+        errorMessage = 'An unexpected error occurred: ${error.message}';
     }
 
     return errorMessage;

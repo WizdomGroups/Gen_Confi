@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/layout/responsive_container.dart';
+import 'package:gen_confi/core/providers/auth_provider.dart'; // Import auth provider
 import 'package:gen_confi/core/utils/theme_extensions.dart';
-import 'package:gen_confi/core/widgets/app_card.dart';
-import 'package:gen_confi/services/auth_store.dart';
-import 'package:gen_confi/services/onboarding_store.dart';
-import 'package:gen_confi/services/theme_store.dart';
+import 'package:gen_confi/core/constants/api_constants.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ClientHomeDashboard extends StatefulWidget {
+class ClientHomeDashboard extends ConsumerStatefulWidget {
   final Function(int) onNavigateToTab;
 
   const ClientHomeDashboard({super.key, required this.onNavigateToTab});
 
   @override
-  State<ClientHomeDashboard> createState() => _ClientHomeDashboardState();
+  ConsumerState<ClientHomeDashboard> createState() =>
+      _ClientHomeDashboardState();
 }
 
-class _ClientHomeDashboardState extends State<ClientHomeDashboard>
+class _ClientHomeDashboardState extends ConsumerState<ClientHomeDashboard>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -56,16 +56,19 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
 
   @override
   Widget build(BuildContext context) {
-    final userName = AuthStore().userEmail?.split('@')[0] ?? "Alex";
+    // Watch current user provider
+    final user = ref.watch(currentUserProvider);
+    // Use user name, fallback to email name, fallback to Guest
+    final userName = user?.name ?? user?.email.split('@')[0] ?? "Guest";
     final greeting = _getGreeting();
 
     return ResponsiveContainer(
       // Enable full width on mobile to avoid double padding (ResponsiveContainer padding + inner content padding)
       fullWidthMobile: true,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-          ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+        ),
         child: Stack(
           children: [
             // Subtle gradient orbs for depth
@@ -97,7 +100,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildHeader(context, userName, greeting),
+                      _buildHeader(context, userName, greeting, user),
                       const SizedBox(height: AppSpacing.xxl),
 
                       _buildHeroActionCard(context),
@@ -174,7 +177,12 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
     );
   }
 
-  Widget _buildHeader(BuildContext context, String name, String greeting) {
+  Widget _buildHeader(
+    BuildContext context,
+    String name,
+    String greeting,
+    dynamic user,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -185,21 +193,21 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
               Text(
                 "$greeting,",
                 style: GoogleFonts.inter(
-                  fontSize: 15,
+                  fontSize: 13,
                   color: context.themeTextSecondary,
                   fontWeight: FontWeight.w500,
-                  letterSpacing: 0.3,
+                  letterSpacing: 0.2,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 name,
                 style: GoogleFonts.inter(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
                   color: context.themeTextPrimary,
-                  height: 1.1,
-                  letterSpacing: -0.5,
+                  height: 1.2,
+                  letterSpacing: -0.2,
                 ),
               ),
             ],
@@ -207,42 +215,61 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
         ),
         GestureDetector(
           onTap: () => widget.onNavigateToTab(3),
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: AppColors.primaryGradient,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.gradientStart.withOpacity(0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
             child: Container(
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: AppColors.primaryGradient,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.gradientStart.withOpacity(0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                color: Theme.of(context).scaffoldBackgroundColor,
               ),
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                ),
-                child: CircleAvatar(
-                  radius: 24,
-                  backgroundColor: context.themeSurface,
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : "A",
-                    style: TextStyle(
-                      color: context.themeTextPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
+              child: CircleAvatar(
+                radius: 24,
+                backgroundColor: context.themeSurface,
+                backgroundImage:
+                    user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
+                    ? _getAvatarProvider(user.avatarUrl!)
+                    : null,
+                child: user?.avatarUrl == null || user!.avatarUrl!.isEmpty
+                    ? Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : "A",
+                        style: TextStyle(
+                          color: context.themeTextPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      )
+                    : null,
               ),
             ),
+          ),
         ),
       ],
     );
+  }
+
+  ImageProvider _getAvatarProvider(String url) {
+    if (url.startsWith('assets/')) {
+      return AssetImage(url);
+    }
+    if (url.startsWith('http')) {
+      return NetworkImage(url);
+    }
+
+    // Handle relative paths from our backend
+    final cleanUrl = url.startsWith('/') ? url : '/$url';
+    return NetworkImage('${ApiConstants.baseUrl}$cleanUrl');
   }
 
   Widget _buildHeroActionCard(BuildContext context) {
@@ -260,10 +287,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
             context.themeSurface,
           ],
         ),
-        border: Border.all(
-          color: AppColors.border.withOpacity(0.5),
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.border.withOpacity(0.5), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.5),
@@ -392,8 +416,23 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.smartFaceCapture);
+                    onPressed: () async {
+                      // Navigate to capture and wait for result path
+                      final result = await Navigator.pushNamed(
+                        context,
+                        AppRoutes.smartFaceCapture,
+                      );
+
+                      if (result != null &&
+                          result is String &&
+                          context.mounted) {
+                        // Navigate to analysis with the captured image path
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.clientGroomingAnalysis,
+                          arguments: {'imagePath': result},
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: context.themeSurfaceElevated,
@@ -401,9 +440,7 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       elevation: 0,
                       shadowColor: Colors.transparent,
                     ),
@@ -638,7 +675,10 @@ class _ClientHomeDashboardState extends State<ClientHomeDashboard>
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 child: Text(
                   "Pending",
                   style: GoogleFonts.inter(

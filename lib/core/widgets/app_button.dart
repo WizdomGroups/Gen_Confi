@@ -214,29 +214,29 @@ class _AppButtonState extends State<AppButton>
   Gradient? _getGradient() {
     if (_isEffectiveDisabled) return null;
     if (widget.style == AppButtonStyle.primary) {
-      return const LinearGradient(
-        colors: [Color(0xFF14B8A6), Color(0xFF0D9488)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
+      return AppColors.primaryGradient;
     }
     return null;
   }
 
   Color? _getBackgroundColor() {
     if (_isEffectiveDisabled) {
-      return const Color(0xFFE2E8F0);
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return isDark ? AppColors.surfaceElevatedDark : const Color(0xFFE2E8F0);
     }
 
     switch (widget.style) {
       case AppButtonStyle.primary:
-        return null; // Gradient handles this. Returning color + gradient can cause issues.
+        return null; // Gradient handles this.
       case AppButtonStyle.secondary:
-        return _isPressed ? const Color(0xFFE0F2F1) : const Color(0xFFF0FDFA);
+        return _isPressed
+            ? AppColors.primary.withOpacity(0.15)
+            : AppColors.primary.withOpacity(0.08);
       case AppButtonStyle.outline:
-        return _isPressed ? const Color(0xFFF0FDFA) : Colors.transparent;
       case AppButtonStyle.ghost:
-        return _isPressed ? const Color(0xFFF0FDFA) : Colors.transparent;
+        return _isPressed
+            ? AppColors.primary.withOpacity(0.1)
+            : Colors.transparent;
     }
   }
 
@@ -248,7 +248,7 @@ class _AppButtonState extends State<AppButton>
 
     final borderColor = _isEffectiveDisabled
         ? const Color(0xFFCBD5E1)
-        : const Color(0xFF0D9488);
+        : AppColors.primary;
 
     return Border.all(
       color: borderColor,
@@ -266,7 +266,7 @@ class _AppButtonState extends State<AppButton>
     if (widget.style == AppButtonStyle.primary) {
       return [
         BoxShadow(
-          color: const Color(0xFF0D9488).withOpacity(_isPressed ? 0.2 : 0.3),
+          color: AppColors.gradientStart.withOpacity(_isPressed ? 0.2 : 0.3),
           blurRadius: _isPressed ? 12 : 16,
           offset: Offset(0, _isPressed ? 4 : 8),
         ),
@@ -276,7 +276,7 @@ class _AppButtonState extends State<AppButton>
     // Secondary style shadow
     return [
       BoxShadow(
-        color: const Color(0xFF0D9488).withOpacity(0.1),
+        color: AppColors.primary.withOpacity(0.1),
         blurRadius: 8,
         offset: const Offset(0, 2),
       ),
@@ -287,14 +287,14 @@ class _AppButtonState extends State<AppButton>
     if (widget.style == AppButtonStyle.primary) {
       return Colors.white.withOpacity(0.2);
     }
-    return const Color(0xFF0D9488).withOpacity(0.1);
+    return AppColors.primary.withOpacity(0.1);
   }
 
   Color _getHighlightColor() {
     if (widget.style == AppButtonStyle.primary) {
       return Colors.white.withOpacity(0.1);
     }
-    return const Color(0xFF0D9488).withOpacity(0.05);
+    return AppColors.primary.withOpacity(0.05);
   }
 
   Color _getTextColor() {
@@ -308,7 +308,7 @@ class _AppButtonState extends State<AppButton>
       case AppButtonStyle.secondary:
       case AppButtonStyle.outline:
       case AppButtonStyle.ghost:
-        return const Color(0xFF0D9488);
+        return AppColors.primary;
     }
   }
 }
