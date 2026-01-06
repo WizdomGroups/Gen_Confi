@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:ui';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
+import 'package:gen_confi/core/providers/auth_provider.dart';
 
-class PremiumLoginScreen extends StatefulWidget {
+class PremiumLoginScreen extends ConsumerStatefulWidget {
   const PremiumLoginScreen({super.key});
 
   @override
-  State<PremiumLoginScreen> createState() => _PremiumLoginScreenState();
+  ConsumerState<PremiumLoginScreen> createState() => _PremiumLoginScreenState();
 }
 
-class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTickerProviderStateMixin {
+class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -31,9 +33,23 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
 
+    // Listen to error changes
+    ref.listen(authErrorProvider, (previous, next) {
+      if (next != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next, style: GoogleFonts.inter()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      resizeToAvoidBottomInset: false, // Prevents resizing (and thus scrolling) when keyboard appears
+      resizeToAvoidBottomInset:
+          false, // Prevents resizing (and thus scrolling) when keyboard appears
       body: Stack(
         children: [
           // 1. Premium Background Aura
@@ -57,7 +73,10 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
           // 2. Main Content
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 32.0,
+                vertical: 24.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -85,7 +104,8 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                       const SizedBox(height: 24),
                       Text(
                         'GENCONFI',
-                        style: GoogleFonts.lexend( // Switched to Lexend for a cleaner premium look
+                        style: GoogleFonts.lexend(
+                          // Switched to Lexend for a cleaner premium look
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
                           color: colorScheme.onSurface,
@@ -97,8 +117,8 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: isDark 
-                              ? AppColors.textMutedDark 
+                          color: isDark
+                              ? AppColors.textMutedDark
                               : AppColors.textMutedLight,
                           letterSpacing: 3.0,
                         ),
@@ -127,13 +147,16 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            Navigator.pushNamed(context, AppRoutes.forgotPassword);
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.forgotPassword,
+                            );
                           },
                           child: Text(
                             'Forgot Password?',
                             style: GoogleFonts.inter(
-                              color: isDark 
-                                  ? AppColors.textSecondaryDark 
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
                                   : AppColors.textSecondaryLight,
                               fontSize: 12,
                             ),
@@ -158,8 +181,8 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: isDark 
-                              ? AppColors.textMutedDark 
+                          color: isDark
+                              ? AppColors.textMutedDark
                               : AppColors.textMutedLight,
                           letterSpacing: 1.5,
                         ),
@@ -170,9 +193,15 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                         children: [
                           _buildSocialBtn(FontAwesomeIcons.google, 'Google'),
                           const SizedBox(width: 20),
-                          _buildSocialBtn(FontAwesomeIcons.instagram, 'Instagram'),
+                          _buildSocialBtn(
+                            FontAwesomeIcons.instagram,
+                            'Instagram',
+                          ),
                           const SizedBox(width: 20),
-                          _buildSocialBtn(FontAwesomeIcons.facebook, 'Facebook'),
+                          _buildSocialBtn(
+                            FontAwesomeIcons.facebook,
+                            'Facebook',
+                          ),
                         ],
                       ),
                       const SizedBox(height: 40),
@@ -186,8 +215,8 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
                             Text(
                               "New here? ",
                               style: GoogleFonts.inter(
-                                color: isDark 
-                                    ? AppColors.textMutedDark 
+                                color: isDark
+                                    ? AppColors.textMutedDark
                                     : AppColors.textMutedLight,
                               ),
                             ),
@@ -221,7 +250,7 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -234,37 +263,33 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
-        style: TextStyle(
-          color: colorScheme.onSurface,
-          fontSize: 15,
-        ),
+        style: TextStyle(color: colorScheme.onSurface, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.inter(
-            color: isDark 
-                ? AppColors.textMutedDark 
-                : AppColors.textMutedLight,
+            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
             fontSize: 14,
           ),
           prefixIcon: Icon(
             icon,
-            color: isDark 
-                ? AppColors.textSecondaryDark 
+            color: isDark
+                ? AppColors.textSecondaryDark
                 : AppColors.textSecondaryLight,
             size: 20,
           ),
-          suffixIcon: isPassword 
-            ? IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: isDark 
-                      ? AppColors.textMutedDark 
-                      : AppColors.textMutedLight,
-                  size: 18,
-                ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-              ) 
-            : null,
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: isDark
+                        ? AppColors.textMutedDark
+                        : AppColors.textMutedLight,
+                    size: 18,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                )
+              : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
@@ -275,7 +300,7 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
   Widget _buildLoginButton(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Container(
       width: double.infinity,
       height: 54,
@@ -287,44 +312,95 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
             color: AppColors.gradientStart.withOpacity(isDark ? 0.2 : 0.15),
             blurRadius: 15,
             offset: const Offset(0, 8),
-          )
+          ),
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
+        onPressed: () async {
+          final isLoading = ref.read(authLoadingProvider);
+          if (isLoading) return;
+
           final email = _emailController.text.trim();
           final password = _passwordController.text.trim();
-          
-          // Check for hardcoded credentials
-          if (email.toLowerCase() == 'user@example.com' && password == 'User') {
-            // Navigate to home screen
-            Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
-          } else {
-            // Show error for invalid credentials
+
+          if (email.isEmpty || password.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Invalid email or password',
+                  'Please enter both email and password',
                   style: GoogleFonts.inter(),
                 ),
                 backgroundColor: Colors.red,
                 behavior: SnackBarBehavior.floating,
               ),
             );
+            return;
+          }
+
+          // Trigger login
+          final success = await ref
+              .read(authProvider.notifier)
+              .login(email, password);
+
+          if (success && mounted) {
+            final user = ref.read(currentUserProvider);
+            // Navigate based on role
+            if (user != null) {
+              print('🚀 Navigating to ${user.role} dashboard');
+              // Try to navigate based on role if possible, else default to client shell
+              switch (user.role.toLowerCase()) {
+                case 'admin':
+                  Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.adminDashboard,
+                  );
+                  break;
+                case 'expert':
+                  Navigator.pushReplacementNamed(context, AppRoutes.expertHome);
+                  break;
+                case 'client':
+                default:
+                  Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.clientShell,
+                  );
+                  break;
+              }
+            } else {
+              print('⚠️ User role unknown, navigating to client shell');
+              Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
+            }
           }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        child: Text(
-          'SIGN IN',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 2,
-            color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
+        ),
+        child: Consumer(
+          builder: (context, ref, child) {
+            final isLoading = ref.watch(authLoadingProvider);
+            if (isLoading) {
+              return const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              );
+            }
+            return Text(
+              'SIGN IN',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
+                color: Colors.white,
+              ),
+            );
+          },
         ),
       ),
     );
@@ -334,7 +410,7 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
-    
+
     return GestureDetector(
       onTap: () {
         // Handle social login
@@ -348,11 +424,7 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> with SingleTick
             color: isDark ? AppColors.borderDark : AppColors.borderLight,
           ),
         ),
-        child: FaIcon(
-          icon,
-          color: colorScheme.onSurface,
-          size: 20,
-        ),
+        child: FaIcon(icon, color: colorScheme.onSurface, size: 20),
       ),
     );
   }

@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:ui';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
-import 'package:gen_confi/services/auth_store.dart';
+import 'package:gen_confi/core/providers/auth_provider.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 
-class PremiumSignupScreen extends StatefulWidget {
+class PremiumSignupScreen extends ConsumerStatefulWidget {
   const PremiumSignupScreen({super.key});
 
   @override
-  State<PremiumSignupScreen> createState() => _PremiumSignupScreenState();
+  ConsumerState<PremiumSignupScreen> createState() =>
+      _PremiumSignupScreenState();
 }
 
-class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
+class _PremiumSignupScreenState extends ConsumerState<PremiumSignupScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
   bool _obscurePassword = true;
-  final _authStore = AuthStore();
 
   @override
   void dispose() {
@@ -36,7 +36,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
-    
+
     return Scaffold(
       backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: true, // Allow resize for form input
@@ -76,7 +76,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                     ),
                   ),
                 ),
-                
+
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -85,7 +85,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                       child: Column(
                         children: [
                           const SizedBox(height: 20),
-                          
+
                           // Header Section
                           Column(
                             children: [
@@ -104,8 +104,8 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                                 style: GoogleFonts.inter(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark 
-                                      ? AppColors.textMutedDark 
+                                  color: isDark
+                                      ? AppColors.textMutedDark
                                       : AppColors.textMutedLight,
                                   letterSpacing: 2.5,
                                 ),
@@ -156,17 +156,29 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  _buildSocialBtn(FontAwesomeIcons.google, 'Google'),
+                                  _buildSocialBtn(
+                                    FontAwesomeIcons.google,
+                                    'Google',
+                                  ),
                                   const SizedBox(width: 20),
-                                  _buildSocialBtn(FontAwesomeIcons.instagram, 'Instagram'),
+                                  _buildSocialBtn(
+                                    FontAwesomeIcons.instagram,
+                                    'Instagram',
+                                  ),
                                   const SizedBox(width: 20),
-                                  _buildSocialBtn(FontAwesomeIcons.facebook, 'Facebook'),
+                                  _buildSocialBtn(
+                                    FontAwesomeIcons.facebook,
+                                    'Facebook',
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 32),
                               GestureDetector(
                                 onTap: () {
-                                  Navigator.pushReplacementNamed(context, AppRoutes.login);
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    AppRoutes.login,
+                                  );
                                 },
                                 child: RichText(
                                   text: TextSpan(
@@ -175,8 +187,8 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
                                       TextSpan(
                                         text: "Already a member? ",
                                         style: TextStyle(
-                                          color: isDark 
-                                              ? AppColors.textMutedDark 
+                                          color: isDark
+                                              ? AppColors.textMutedDark
                                               : AppColors.textMutedLight,
                                         ),
                                       ),
@@ -217,7 +229,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -231,37 +243,33 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
         controller: controller,
         obscureText: isPassword && _obscurePassword,
         keyboardType: keyboardType,
-        style: TextStyle(
-          color: colorScheme.onSurface,
-          fontSize: 14,
-        ),
+        style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.inter(
-            color: isDark 
-                ? AppColors.textMutedDark 
-                : AppColors.textMutedLight,
+            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
             fontSize: 13,
           ),
           prefixIcon: Icon(
             icon,
-            color: isDark 
-                ? AppColors.textSecondaryDark 
+            color: isDark
+                ? AppColors.textSecondaryDark
                 : AppColors.textSecondaryLight,
             size: 18,
           ),
-          suffixIcon: isPassword 
-            ? IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: isDark 
-                      ? AppColors.textMutedDark 
-                      : AppColors.textMutedLight,
-                  size: 16,
-                ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-              ) 
-            : null,
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: isDark
+                        ? AppColors.textMutedDark
+                        : AppColors.textMutedLight,
+                    size: 16,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                )
+              : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
@@ -272,7 +280,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
   Widget _buildSignupButton() {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Container(
       width: double.infinity,
       height: 54,
@@ -284,35 +292,47 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
             color: AppColors.gradientStart.withOpacity(isDark ? 0.2 : 0.15),
             blurRadius: 15,
             offset: const Offset(0, 8),
-          )
+          ),
         ],
       ),
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleSignup,
+        onPressed: () {
+          final isLoading = ref.read(authLoadingProvider);
+          if (!isLoading) {
+            _handleSignup();
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           disabledBackgroundColor: Colors.transparent,
         ),
-        child: _isLoading
-            ? SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Text(
-                'CREATE ACCOUNT',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
-              ),
+        child: Consumer(
+          builder: (context, ref, child) {
+            final isLoading = ref.watch(authLoadingProvider);
+            return isLoading
+                ? SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    'CREATE ACCOUNT',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  );
+          },
+        ),
       ),
     );
   }
@@ -355,32 +375,51 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
       return;
     }
 
-    // Set loading state
-    setState(() {
-      _isLoading = true;
-    });
+    // Get auth notifier
+    final authNotifier = ref.read(authProvider.notifier);
 
-    try {
-      // Simulate API call delay
-      await Future.delayed(const Duration(milliseconds: 500));
+    // Perform signup via API
+    final success = await authNotifier.signup(
+      name: name,
+      email: email,
+      phone: phone,
+      password: password,
+    );
 
-      // Perform signup (default to client role for new signups)
-      _authStore.signup(email, password, UserRole.client);
+    if (!mounted) return;
 
-      // Navigate to role selection or onboarding
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.roleSelection);
+    if (success) {
+      // Get user from provider
+      final user = ref.read(currentUserProvider);
+
+      // Navigate directly to home based on user role (skip role selection)
+      if (user != null) {
+        print('🚀 Signup successful. Navigating to ${user.role} home');
+        switch (user.role.toLowerCase()) {
+          case 'client':
+            Navigator.pushReplacementNamed(context, AppRoutes.clientHome);
+            break;
+          case 'expert':
+            Navigator.pushReplacementNamed(context, AppRoutes.expertHome);
+            break;
+          case 'admin':
+            Navigator.pushReplacementNamed(context, AppRoutes.adminDashboard);
+            break;
+          default:
+            // Default to client home if role is unknown
+            Navigator.pushReplacementNamed(context, AppRoutes.clientHome);
+        }
+      } else {
+        // Fallback to client home if user data not available
+        print(
+          '⚠️ User data unavailable after signup, defaulting to client home',
+        );
+        Navigator.pushReplacementNamed(context, AppRoutes.clientHome);
       }
-    } catch (e) {
-      if (mounted) {
-        _showError('Signup failed. Please try again.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    } else {
+      // Show error from provider
+      final error = ref.read(authErrorProvider);
+      _showError(error ?? 'Signup failed. Please try again.');
     }
   }
 
@@ -391,10 +430,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: GoogleFonts.inter(),
-        ),
+        content: Text(message, style: GoogleFonts.inter()),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
@@ -406,7 +442,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
-    
+
     return GestureDetector(
       onTap: () {
         // Handle social signup
@@ -420,11 +456,7 @@ class _PremiumSignupScreenState extends State<PremiumSignupScreen> {
             color: isDark ? AppColors.borderDark : AppColors.borderLight,
           ),
         ),
-        child: FaIcon(
-          icon,
-          color: colorScheme.onSurface,
-          size: 20,
-        ),
+        child: FaIcon(icon, color: colorScheme.onSurface, size: 20),
       ),
     );
   }
