@@ -1,12 +1,16 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/onboarding_store.dart';
-import '../../services/auth_store.dart';
+import '../../core/storage/token_storage.dart';
+import '../../core/models/user_model.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/providers/api_providers.dart';
 import 'analyzing_features_screen.dart';
 
-class ChatQuestionScreen extends StatefulWidget {
+class ChatQuestionScreen extends ConsumerStatefulWidget {
   final String imagePath;
 
   const ChatQuestionScreen({
@@ -15,10 +19,10 @@ class ChatQuestionScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<ChatQuestionScreen> createState() => _ChatQuestionScreenState();
+  ConsumerState<ChatQuestionScreen> createState() => _ChatQuestionScreenState();
 }
 
-class _ChatQuestionScreenState extends State<ChatQuestionScreen> {
+class _ChatQuestionScreenState extends ConsumerState<ChatQuestionScreen> {
   final ScrollController _scrollController = ScrollController();
   int _currentQuestionIndex = 0;
   String? _userName;
@@ -98,9 +102,36 @@ class _ChatQuestionScreenState extends State<ChatQuestionScreen> {
   @override
   void initState() {
     super.initState();
-    _userName = _getUserName();
     _initializeAnswers();
-    _initializeChat();
+    _loadUserNameAndInitializeChat();
+  }
+  
+  Future<void> _loadUserNameAndInitializeChat() async {
+    try {
+      // Get user data from storage
+      final userJson = await TokenStorage.getUser();
+      if (userJson != null && userJson.isNotEmpty) {
+        final userData = jsonDecode(userJson);
+        final user = UserModel.fromJson(userData);
+        
+        // Store the user's actual name (use first name only)
+        if (mounted && user.name.isNotEmpty) {
+          setState(() {
+            // Extract first name (first word) and capitalize first letter
+            final firstName = user.name.split(' ').first;
+            _userName = firstName[0].toUpperCase() + 
+                       (firstName.length > 1 ? firstName.substring(1) : '');
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading user name: $e");
+    } finally {
+      // Initialize chat after username is loaded (or failed to load)
+      if (mounted) {
+        _initializeChat();
+      }
+    }
   }
   
   void _initializeChat() {
@@ -164,18 +195,6 @@ class _ChatQuestionScreenState extends State<ChatQuestionScreen> {
     }
   }
 
-  String? _getUserName() {
-    final authStore = AuthStore();
-    final userEmail = authStore.userEmail;
-    
-    if (userEmail != null && userEmail.isNotEmpty) {
-      final name = userEmail.split('@')[0];
-      if (name.isNotEmpty) {
-        return name[0].toUpperCase() + (name.length > 1 ? name.substring(1) : '');
-      }
-    }
-    return null;
-  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -246,48 +265,105 @@ class _ChatQuestionScreenState extends State<ChatQuestionScreen> {
     }
   }
 
-  void _handleComplete() {
-    // Save preferences to OnboardingStore
-    final store = OnboardingStore();
-    
-    // Combine all preferences into styleTags
-    final allStyleTags = <String>[];
-    if (_answers['dailyRoutine'] != null) {
-      allStyleTags.add(_answers['dailyRoutine']);
-    }
-    if (_answers['stylingPreference'] != null) {
-      allStyleTags.add(_answers['stylingPreference']);
-    }
-    if (_answers['occasions'] != null) {
-      allStyleTags.addAll(_answers['occasions'] as Set<String>);
-    }
-    if (_answers['personalStyle'] != null) {
-      allStyleTags.addAll(_answers['personalStyle'] as Set<String>);
-    }
-    
-    // Update draft with style tags and concerns
-    final currentDraft = store.draft;
-    store.update(
-      currentDraft.copyWith(
-        styleTags: allStyleTags,
-        groomingConcerns: (_answers['concerns'] as Set<String>?)?.toList() ?? [],
-      ),
-    );
-
-    // Navigate to analyzing features screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (ctx) => AnalyzingFeaturesScreen(
-          imagePath: widget.imagePath,
-        ),
-      ),
-    ).then((result) {
-      // When analysis completes, return to previous screen with image path
-      if (result != null && mounted) {
-        Navigator.pop(context, result);
+  Future<void> _handleComplete() async {
+    try {
+      // Show loading indicator
+      if (!mounted) return;
+      
+      // Prepare answers map (convert Sets to Lists for JSON)
+      final answersMap = <String, dynamic>{};
+      if (_answers['dailyRoutine'] != null) {
+        answersMap['dailyRoutine'] = _answers['dailyRoutine'];
       }
-    });
+      if (_answers['stylingPreference'] != null) {
+        answersMap['stylingPreference'] = _answers['stylingPreference'];
+      }
+      if (_answers['occasions'] != null) {
+        final occasionsSet = _answers['occasions'] as Set<String>?;
+        answersMap['occasions'] = occasionsSet?.toList() ?? [];
+      }
+      if (_answers['concerns'] != null) {
+        final concernsSet = _answers['concerns'] as Set<String>?;
+        answersMap['concerns'] = concernsSet?.toList() ?? [];
+      }
+      if (_answers['personalStyle'] != null) {
+        final personalStyleSet = _answers['personalStyle'] as Set<String>?;
+        answersMap['personalStyle'] = personalStyleSet?.toList() ?? [];
+      }
+
+      // Get analysis service
+      final analysisService = ref.read(analysisServiceProvider);
+
+      // Submit analysis to API
+      final analysisResponse = await analysisService.completeAnalysis(
+        imagePath: widget.imagePath,
+        answers: answersMap,
+        metadata: {
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+
+      print('✅ Analysis submitted: ID ${analysisResponse.id}');
+
+      // Save preferences to OnboardingStore (for backward compatibility)
+      final store = OnboardingStore();
+      final allStyleTags = <String>[];
+      if (_answers['dailyRoutine'] != null) {
+        allStyleTags.add(_answers['dailyRoutine']);
+      }
+      if (_answers['stylingPreference'] != null) {
+        allStyleTags.add(_answers['stylingPreference']);
+      }
+      if (_answers['occasions'] != null) {
+        allStyleTags.addAll(_answers['occasions'] as Set<String>);
+      }
+      if (_answers['personalStyle'] != null) {
+        allStyleTags.addAll(_answers['personalStyle'] as Set<String>);
+      }
+
+      final currentDraft = store.draft;
+      store.update(
+        currentDraft.copyWith(
+          styleTags: allStyleTags,
+          groomingConcerns: (_answers['concerns'] as Set<String>?)?.toList() ?? [],
+        ),
+      );
+
+      // Navigate to analyzing features screen
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => AnalyzingFeaturesScreen(
+            imagePath: widget.imagePath,
+            analysisId: analysisResponse.id, // Pass analysis ID if needed
+          ),
+        ),
+      ).then((result) {
+        // When analysis completes, return to previous screen with image path
+        if (result != null && mounted) {
+          Navigator.pop(context, result);
+        }
+      });
+    } catch (e) {
+      print('❌ Error submitting analysis: $e');
+      if (!mounted) return;
+      
+      // Show error dialog
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('Failed to submit analysis: ${e.toString()}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override

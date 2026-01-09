@@ -16,7 +16,10 @@ import 'preview_screen.dart';
 import 'domain/capture_thresholds.dart';
 import 'domain/face_analysis_metrics.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
-import 'package:gen_confi/services/auth_store.dart';
+import 'package:gen_confi/core/storage/token_storage.dart';
+import 'package:gen_confi/core/models/user_model.dart';
+import 'package:gen_confi/app/routes/app_routes.dart';
+import 'dart:convert';
 
 class SmartCaptureScreen extends StatefulWidget {
   final Function(String path)? onCaptureComplete;
@@ -45,12 +48,62 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
   double _stabilityProgress = 0.0;
   CaptureStatus _currentCaptureStatus = CaptureStatus.noFace; // Track capture status for overlay
   DateTime? _lastCaptureTime; // For cooldown mechanism
+  
+  // Manual capture timer - enable button after 20 seconds
+  Timer? _manualCaptureTimer;
+  bool _showManualCaptureButton = false;
+  DateTime? _screenStartTime;
+  
+  // User name for guidance messages
+  String? _userName;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _screenStartTime = DateTime.now();
+    _startManualCaptureTimer();
+    _loadUserName();
     _initializeCamera();
+  }
+  
+  Future<void> _loadUserName() async {
+    try {
+      // Get user data from storage
+      final userJson = await TokenStorage.getUser();
+      if (userJson != null && userJson.isNotEmpty) {
+        final userData = jsonDecode(userJson);
+        final user = UserModel.fromJson(userData);
+        
+        // Store the user's actual name (use first name only)
+        if (mounted && !_isDisposed && user.name.isNotEmpty) {
+          setState(() {
+            // Extract first name (first word) and capitalize first letter
+            final firstName = user.name.split(' ').first;
+            _userName = firstName[0].toUpperCase() + 
+                       (firstName.length > 1 ? firstName.substring(1) : '');
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading user name: $e");
+    }
+  }
+  
+  void _startManualCaptureTimer() {
+    _manualCaptureTimer?.cancel();
+    _manualCaptureTimer = Timer(const Duration(seconds: 20), () {
+      if (mounted && !_isDisposed && !_isCapturing) {
+        setState(() {
+          _showManualCaptureButton = true;
+          // Update instruction to inform user about manual button
+          if (!_isStable) {
+            _instruction = "Tap the button below to capture manually";
+          }
+        });
+        debugPrint("Manual capture button enabled after 20 seconds");
+      }
+    });
   }
 
   @override
@@ -58,6 +111,7 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
     _isDisposed = true; // Mark as disposed first
     WidgetsBinding.instance.removeObserver(this);
     _stabilityTimer?.cancel();
+    _manualCaptureTimer?.cancel();
     _stopStream();
     // Dispose controller after stopping stream
     final controller = _controller;
@@ -118,18 +172,35 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
 
   Future<void> _initializeCamera() async {
     try {
-      // 1. Permissions
-      final status = await Permission.camera.request();
-      if (status != PermissionStatus.granted) {
-      if (mounted) {
-        final navigator = Navigator.of(context);
-        _showErrorDialog(
-          "Camera Permission Required",
-          "Please grant camera permission to use face capture.",
-          () => navigator.pop(),
-        );
-      }
+      // 1. Check current permission status first
+      final currentStatus = await Permission.camera.status;
+      
+      // If permission was previously denied, request again
+      if (currentStatus.isDenied) {
+        final status = await Permission.camera.request();
+        if (status.isDenied || status.isPermanentlyDenied) {
+          // User denied permission - navigate back to home
+          if (mounted) {
+            _navigateBackToHome();
+          }
+          return;
+        }
+      } else if (currentStatus.isPermanentlyDenied) {
+        // Permission is permanently denied - show dialog and navigate back
+        if (mounted) {
+          _showPermissionDeniedDialog();
+        }
         return;
+      } else if (!currentStatus.isGranted) {
+        // Request permission if not granted
+        final status = await Permission.camera.request();
+        if (status.isDenied || status.isPermanentlyDenied) {
+          // User denied permission - navigate back to home
+          if (mounted) {
+            _navigateBackToHome();
+          }
+          return;
+        }
       }
 
       // 2. Select Front Camera
@@ -232,6 +303,39 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
     }
   }
   
+  void _navigateBackToHome() {
+    // Navigate back to home screen (client shell)
+    if (mounted && !_isDisposed) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.clientShell,
+        (route) => false,
+      );
+    }
+  }
+
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("Camera Permission Denied"),
+        content: const Text(
+          "Camera permission is required to use face capture. "
+          "Please enable it in your device settings if you want to use this feature.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              _navigateBackToHome(); // Navigate to home
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showErrorDialog(String title, String message, VoidCallback onClose, {bool showRetry = false}) {
     showDialog(
       context: context,
@@ -288,22 +392,6 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
 
   // Frame skipping is handled in FaceCaptureLogic, no need for double skipping
 
-  String? _getUserName() {
-    final authStore = AuthStore();
-    final userEmail = authStore.userEmail;
-    
-    if (userEmail != null && userEmail.isNotEmpty) {
-      // Extract name from email (part before @)
-      final name = userEmail.split('@')[0];
-      if (name.isNotEmpty) {
-        // Capitalize first letter
-        return name[0].toUpperCase() + (name.length > 1 ? name.substring(1) : '');
-      }
-    }
-    
-    // Return null if no user email found
-    return null;
-  }
 
   void _processCameraImage(CameraImage image) async {
     // Prevent concurrent processing - use lock from logic class
@@ -496,6 +584,12 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
         if (elapsed >= timerDuration) {
           timer.cancel();
           if (!_isDisposed && mounted) {
+            // Hide manual button when auto-capture triggers
+            if (_showManualCaptureButton) {
+              setState(() {
+                _showManualCaptureButton = false;
+              });
+            }
             _capturePhoto();
           }
         }
@@ -508,7 +602,7 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
     _stabilityTimer = null;
   }
 
-  Future<void> _capturePhoto() async {
+  Future<void> _capturePhoto({bool isManual = false}) async {
     if (!mounted || _isDisposed || _isCapturing) return;
     
     // Check cooldown period
@@ -524,10 +618,26 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) return;
     
-    // Safety checks - verify face is still stable and ready
-    if (!_isStable || _currentCaptureStatus != CaptureStatus.ready) {
-      debugPrint("Face not stable or ready, aborting capture");
-      return;
+    // For manual capture, allow even if not perfectly stable
+    // For auto capture, require face to be stable and ready
+    if (!isManual) {
+      if (!_isStable || _currentCaptureStatus != CaptureStatus.ready) {
+        debugPrint("Face not stable or ready, aborting auto capture");
+        return;
+      }
+    } else {
+      // Manual capture - only require face to be detected (not necessarily perfect)
+      if (_currentCaptureStatus == CaptureStatus.noFace || 
+          _currentFaceRect == null) {
+        debugPrint("No face detected, cannot capture manually");
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _instruction = "Please position your face in the frame";
+          });
+        }
+        return;
+      }
+      debugPrint("Manual capture triggered - capturing even if not perfect");
     }
 
     // Set capturing flag to prevent concurrent captures
@@ -592,6 +702,9 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
         // Resume Camera only if not disposed
         if (!_isDisposed && mounted) {
           _startStream();
+          // Reset manual capture timer when retaking
+          _showManualCaptureButton = false;
+          _startManualCaptureTimer();
           setState(() {
             _isStable = false;
             _instruction = "Position your face in the frame";
@@ -736,6 +849,9 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
             // Wrap in error boundary
             _buildBottomCard(),
             
+            // Manual Capture Button (appears after 20 seconds)
+            if (_showManualCaptureButton) _buildManualCaptureButton(),
+            
             // Back Button with app colors
             _buildBackButton(),
           ],
@@ -815,10 +931,97 @@ class _SmartCaptureScreenState extends State<SmartCaptureScreen> with WidgetsBin
         isReady: _isStable,
         progress: _isStable ? _stabilityProgress : null,
         metrics: _currentMetrics,
-        userName: _getUserName(),
+        userName: _userName,
       );
     } catch (e) {
       debugPrint("BottomCard build error: $e");
+      return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildManualCaptureButton() {
+    try {
+      return Positioned(
+        bottom: 0,
+        left: 0,
+        right: 0,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 120.0, left: 24.0, right: 24.0),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Hint text
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      "Tap to capture manually",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Capture button
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.gradientStart.withOpacity(0.5),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _isCapturing ? null : () => _capturePhoto(isManual: true),
+                        borderRadius: BorderRadius.circular(50),
+                        child: Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 3,
+                            ),
+                          ),
+                          child: _isCapturing
+                              ? const Padding(
+                                  padding: EdgeInsets.all(20.0),
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 3,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.camera_alt_rounded,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint("ManualCaptureButton build error: $e");
       return const SizedBox.shrink();
     }
   }

@@ -2,17 +2,21 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
-import 'data/dummy_analysis_data.dart';
+import '../../core/config/api_config.dart';
+import '../../core/models/analysis_models.dart';
+import 'data/dummy_analysis_data.dart' as dummy;
 import '../../services/saved_looks_store.dart';
 import 'widgets/swipeable_hairstyle_cards.dart';
 import '../../app/routes/app_routes.dart';
 
 class AnalysisResultsScreen extends StatefulWidget {
   final String imagePath;
+  final AnalysisResponse? analysisResponse; // API response data
 
   const AnalysisResultsScreen({
     Key? key,
     required this.imagePath,
+    this.analysisResponse,
   }) : super(key: key);
 
   @override
@@ -23,13 +27,18 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-  late AnalysisResults _results;
+  late dummy.AnalysisResults _results;
   final SavedLooksStore _savedLooksStore = SavedLooksStore();
 
   @override
   void initState() {
     super.initState();
-    _results = DummyAnalysisData.getDummyResults();
+    // Use API response if available, otherwise use dummy data
+    if (widget.analysisResponse != null) {
+      _results = _convertApiResponseToResults(widget.analysisResponse!);
+    } else {
+      _results = dummy.DummyAnalysisData.getDummyResults();
+    }
 
     _fadeController = AnimationController(
       vsync: this,
@@ -44,6 +53,94 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
     );
 
     _fadeController.forward();
+  }
+
+  /// Convert API response to AnalysisResults format
+  dummy.AnalysisResults _convertApiResponseToResults(AnalysisResponse response) {
+    // Convert best_hairstyles from API to HairstyleRecommendation format
+    final topHairstyles = response.styleRecommendations.bestHairstyles
+        .map((h) => dummy.HairstyleRecommendation(
+              name: h.name,
+              description: h.description ?? 'Perfect match for your style',
+              imageUrl: _getFullImageUrl(h.imageUrl),
+              matchScore: h.confidenceScore ?? 0.85,
+              features: [
+                if (h.suitabilityReason != null) h.suitabilityReason!,
+                'Matches your face shape',
+                'Complements your style preferences',
+              ],
+            ))
+        .toList();
+
+    // If less than 3 hairstyles, pad with dummy data
+    while (topHairstyles.length < 3) {
+      final dummyHairstyle = dummy.DummyAnalysisData.getDummyResults().topHairstyles[topHairstyles.length];
+      topHairstyles.add(dummyHairstyle);
+    }
+
+    // Convert face_matrix from API
+    final faceMatrixData = response.faceAnalysis.faceMatrix ?? {};
+    final faceMatrix = dummy.FaceMatrix(
+      faceShapeScore: faceMatrixData['face_shape_score']?.toDouble() ?? 0.87,
+      faceShape: response.faceAnalysis.faceShape ?? 'Oval',
+      symmetryScore: faceMatrixData['symmetry_score']?.toDouble() ?? 
+                     response.faceAnalysis.faceMetrics?['symmetry_score']?.toDouble() ?? 0.82,
+      proportionScore: faceMatrixData['proportion_score']?.toDouble() ?? 0.79,
+      measurements: {
+        'Forehead Width': (faceMatrixData['forehead_width']?.toDouble() ?? 110.8) / 150.0,
+        'Cheekbone Width': (faceMatrixData['cheekbone_width']?.toDouble() ?? 125.6) / 150.0,
+        'Jawline Width': (faceMatrixData['jaw_width']?.toDouble() ?? 95.2) / 150.0,
+        'Face Length': (faceMatrixData['face_length']?.toDouble() ?? 180.3) / 250.0,
+        'Face Width': (faceMatrixData['face_width']?.toDouble() ?? 120.5) / 150.0,
+      },
+    );
+
+    // Convert skin quality from API
+    final skinQuality = response.faceAnalysis.skinQuality ?? 'Good';
+    final skinHealth = dummy.SkinHealth(
+      overallScore: _getSkinQualityScore(skinQuality),
+      hydrationLevel: 0.68, // Will be populated by model later
+      textureScore: 0.72, // Will be populated by model later
+      toneScore: 0.80, // Will be populated by model later
+      concerns: (response.chatAnswers['concerns'] as List<dynamic>?)?.cast<String>() ?? [],
+      improvements: [
+        'Maintain your current skincare routine',
+        'Stay hydrated for better skin health',
+        'Use sunscreen daily',
+      ],
+    );
+
+    return dummy.AnalysisResults(
+      topHairstyles: topHairstyles,
+      faceMatrix: faceMatrix,
+      skinHealth: skinHealth,
+    );
+  }
+
+  /// Get full image URL from relative path
+  String _getFullImageUrl(String url) {
+    if (url.startsWith('http')) {
+      return url;
+    }
+    // Convert relative URL to full URL
+    final baseUrl = ApiConfig.baseUrl.replaceAll('/api/v1', '');
+    return url.startsWith('/') ? '$baseUrl$url' : '$baseUrl/$url';
+  }
+
+  /// Convert skin quality string to score
+  double _getSkinQualityScore(String quality) {
+    switch (quality.toLowerCase()) {
+      case 'excellent':
+        return 0.95;
+      case 'good':
+        return 0.80;
+      case 'fair':
+        return 0.65;
+      case 'poor':
+        return 0.45;
+      default:
+        return 0.75;
+    }
   }
 
   @override
@@ -233,7 +330,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
   }
 
   Widget _buildHairstyleCard({
-    required HairstyleRecommendation hairstyle,
+    required dummy.HairstyleRecommendation hairstyle,
     required int rank,
     required bool isDark,
     required ColorScheme colorScheme,
@@ -287,7 +384,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: DummyAnalysisData.getScoreColor(hairstyle.matchScore)
+                  color: dummy.DummyAnalysisData.getScoreColor(hairstyle.matchScore)
                       .withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -296,7 +393,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: DummyAnalysisData.getScoreColor(hairstyle.matchScore),
+                    color: dummy.DummyAnalysisData.getScoreColor(hairstyle.matchScore),
                   ),
                 ),
               ),
@@ -390,7 +487,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
   }
 
   Widget _buildFaceMatrixCard({
-    required FaceMatrix faceMatrix,
+    required dummy.FaceMatrix faceMatrix,
     required bool isDark,
     required ColorScheme colorScheme,
   }) {
@@ -461,7 +558,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
   }
 
   Widget _buildSkinHealthCard({
-    required SkinHealth skinHealth,
+    required dummy.SkinHealth skinHealth,
     required bool isDark,
     required ColorScheme colorScheme,
   }) {
@@ -613,8 +710,8 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
     String? value,
     required bool isDark,
   }) {
-    final scoreColor = DummyAnalysisData.getScoreColor(score);
-    final scoreLabel = DummyAnalysisData.getScoreLabel(score);
+    final scoreColor = dummy.DummyAnalysisData.getScoreColor(score);
+    final scoreLabel = dummy.DummyAnalysisData.getScoreLabel(score);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -693,7 +790,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen>
     required double value,
     required bool isDark,
   }) {
-    final scoreColor = DummyAnalysisData.getScoreColor(value);
+    final scoreColor = dummy.DummyAnalysisData.getScoreColor(value);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

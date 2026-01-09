@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
-import 'package:gen_confi/core/api/api_endpoints.dart';
+import 'package:gen_confi/core/config/api_config.dart';
 import 'package:gen_confi/core/api/dio_client.dart';
 import 'package:gen_confi/core/models/auth_models.dart';
 import 'package:gen_confi/core/models/user_model.dart';
@@ -16,7 +16,7 @@ class AuthService {
     try {
       final request = LoginRequest(email: email, password: password);
       final response = await _dioClient.post(
-        ApiEndpoints.login,
+        ApiConfig.login,
         data: request.toJson(),
       );
 
@@ -53,7 +53,7 @@ class AuthService {
       );
 
       final response = await _dioClient.post(
-        ApiEndpoints.signup,
+        ApiConfig.signup,
         data: request.toJson(),
       );
 
@@ -75,7 +75,7 @@ class AuthService {
   /// Get current user
   Future<UserModel> getCurrentUser() async {
     try {
-      final response = await _dioClient.get(ApiEndpoints.me);
+      final response = await _dioClient.get(ApiConfig.me);
       final user = UserModel.fromJson(response.data);
       // Sync local storage
       await TokenStorage.saveUser(jsonEncode(user.toJson()));
@@ -88,7 +88,7 @@ class AuthService {
   /// Update Profile
   Future<UserModel> updateProfile(Map<String, dynamic> data) async {
     try {
-      final response = await _dioClient.put(ApiEndpoints.updateMe, data: data);
+      final response = await _dioClient.put(ApiConfig.updateMe, data: data);
       final user = UserModel.fromJson(response.data);
       // Sync local storage
       await TokenStorage.saveUser(jsonEncode(user.toJson()));
@@ -107,7 +107,7 @@ class AuthService {
       });
 
       final response = await _dioClient.post(
-        ApiEndpoints.uploadAvatar,
+        ApiConfig.uploadAvatar,
         data: formData,
       );
       final user = UserModel.fromJson(response.data);
@@ -123,7 +123,7 @@ class AuthService {
   Future<void> forgotPassword(String email) async {
     try {
       await _dioClient.post(
-        ApiEndpoints.forgotPassword,
+        ApiConfig.forgotPassword,
         data: {'email': email},
       );
     } catch (e) {
@@ -135,7 +135,7 @@ class AuthService {
   Future<void> resetPassword(String token, String newPassword) async {
     try {
       await _dioClient.post(
-        ApiEndpoints.resetPassword,
+        ApiConfig.resetPassword,
         data: {'token': token, 'new_password': newPassword},
       );
     } catch (e) {

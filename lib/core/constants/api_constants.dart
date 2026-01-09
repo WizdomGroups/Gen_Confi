@@ -1,52 +1,41 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+// DEPRECATED: Use ApiConfig from 'package:gen_confi/core/config/api_config.dart' instead
+// This file is kept for backward compatibility but will be removed in future versions
 
-// Conditional import - uses dart:io on mobile, stub on web
-// ignore: avoid_relative_lib_imports
-import 'dart:io'
-    if (dart.library.html) 'package:gen_confi/core/utils/platform_stub.dart'
-    as io;
+import 'package:gen_confi/core/config/api_config.dart';
 
+/// Legacy API Constants - Use [ApiConfig] instead
+/// 
+/// This class is deprecated. Please use [ApiConfig] for all API configurations.
+@Deprecated('Use ApiConfig from core/config/api_config.dart instead')
 class ApiConstants {
-  // Base URL - Automatically detects platform
-  // For Flutter Web: http://localhost:8000/api/v1
-  // For Android Emulator: http://10.0.2.2:8000/api/v1
-  // For iOS Simulator: http://localhost:8000/api/v1
-  // For Physical Device: Use your computer's IP (e.g., http://192.168.x.x:8000/api/v1)
-
+  /// Base URL - delegates to ApiConfig
+  @Deprecated('Use ApiConfig.baseUrl instead')
   static String get baseUrl {
-    // Flutter Web - MUST use localhost (10.0.2.2 doesn't work in browsers)
-    if (kIsWeb) {
-      final url = 'http://localhost:8000/api/v1';
-      // print('🌐 [ApiConstants] Flutter Web detected - Using: $url');
-      return url;
-    }
-
-    // Mobile platforms - check if Android
-    // On mobile, io will be dart:io, so Platform.isAndroid will work
-    if (io.Platform.isAndroid) {
-      // Use computer's IP for physical device
-      final url = 'http://10.20.190.66:8000/api/v1';
-      // final url = 'http://10.0.2.2:8000/api/v1'; // Emulator
-      // print('📱 [ApiConstants] Android detected - Using: $url');
-      return url;
-    }
-
-    // iOS or other - use localhost
-    final url = 'http://localhost:8000/api/v1';
-    // print('📱 [ApiConstants] iOS/Other detected - Using: $url');
-    return url;
+    ApiConfig.printConfig();
+    return ApiConfig.baseUrl;
   }
 
-  // Auth endpoints
-  static const String login = '/auth/login';
-  static const String signup = '/auth/signup';
-  static const String me = '/auth/me';
+  // Auth endpoints - delegates to ApiConfig
+  @Deprecated('Use ApiConfig.login instead')
+  static const String login = ApiConfig.login;
+  
+  @Deprecated('Use ApiConfig.signup instead')
+  static const String signup = ApiConfig.signup;
+  
+  @Deprecated('Use ApiConfig.me instead')
+  static const String me = ApiConfig.me;
 
-  // User endpoints
-  static const String users = '/users';
-  static String userById(int id) => '/users/$id';
+  // User endpoints - delegates to ApiConfig
+  @Deprecated('Use ApiConfig.users instead')
+  static const String users = ApiConfig.users;
+  
+  @Deprecated('Use ApiConfig.userById() instead')
+  static String userById(int id) => ApiConfig.userById(id);
 
-  // Timeouts
-  static const Duration connectTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 30);
+  // Timeouts - delegates to ApiConfig
+  @Deprecated('Use ApiConfig.connectTimeout instead')
+  static const Duration connectTimeout = ApiConfig.connectTimeout;
+  
+  @Deprecated('Use ApiConfig.receiveTimeout instead')
+  static const Duration receiveTimeout = ApiConfig.receiveTimeout;
 }

@@ -4,7 +4,6 @@ import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/layout/base_scaffold.dart';
 import 'package:gen_confi/core/widgets/app_button.dart';
-import 'package:gen_confi/services/auth_store.dart';
 import 'package:gen_confi/services/onboarding_store.dart';
 
 class GoalSelectionScreen extends StatefulWidget {
@@ -31,13 +30,11 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
     
     // Save selection
     OnboardingStore().updateDraft(skinGoal: _selectedGoal); // Reusing skinGoal field for generic goal for now
-    AuthStore().markOnboardingCompleteForCurrentRole();
 
-    // Navigate to Home Shell
-    Navigator.pushNamedAndRemoveUntil(
+    // Navigate to Chat Onboarding (final step)
+    Navigator.pushNamed(
       context, 
-      AppRoutes.clientShell,
-      (route) => false,
+      AppRoutes.chatOnboarding,
     );
   }
 

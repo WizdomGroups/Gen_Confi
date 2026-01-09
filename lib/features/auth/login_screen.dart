@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/providers/auth_provider.dart';
+import 'package:gen_confi/core/storage/token_storage.dart';
 
 class PremiumLoginScreen extends ConsumerStatefulWidget {
   const PremiumLoginScreen({super.key});
@@ -344,10 +345,11 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen>
 
           if (success && mounted) {
             final user = ref.read(currentUserProvider);
-            // Navigate based on role
+            // Navigate directly to home screen based on role
             if (user != null) {
-              print('🚀 Navigating to ${user.role} dashboard');
-              // Try to navigate based on role if possible, else default to client shell
+              print('🚀 Login successful. User: ${user.email}, Role: ${user.role}');
+              
+              // Navigate to home screen based on role
               switch (user.role.toLowerCase()) {
                 case 'admin':
                   Navigator.pushReplacementNamed(
@@ -360,6 +362,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen>
                   break;
                 case 'client':
                 default:
+                  // Navigate to client home (shell with tabs)
                   Navigator.pushReplacementNamed(
                     context,
                     AppRoutes.clientShell,
@@ -367,7 +370,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen>
                   break;
               }
             } else {
-              print('⚠️ User role unknown, navigating to client shell');
+              // Fallback: navigate to client home if user data unavailable
+              print('⚠️ User data unavailable, navigating to client home');
               Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
             }
           }

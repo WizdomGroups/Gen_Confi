@@ -1,17 +1,43 @@
+// DEPRECATED: Use ApiConfig from 'package:gen_confi/core/config/api_config.dart' instead
+// This file is kept for backward compatibility but will be removed in future versions
+
+import 'package:gen_confi/core/config/api_config.dart';
+
+/// Legacy API Endpoints - Use [ApiConfig] instead
+/// 
+/// This class is deprecated. Please use [ApiConfig] for all API endpoints.
+@Deprecated('Use ApiConfig from core/config/api_config.dart instead')
 class ApiEndpoints {
-  // Auth
-  static const String login = '/auth/login';
-  static const String signup = '/auth/signup';
-  static const String forgotPassword = '/auth/forgot-password';
-  static const String resetPassword = '/auth/reset-password';
-  static const String me = '/auth/me';
+  // Auth endpoints - delegates to ApiConfig
+  @Deprecated('Use ApiConfig.login instead')
+  static const String login = ApiConfig.login;
+  
+  @Deprecated('Use ApiConfig.signup instead')
+  static const String signup = ApiConfig.signup;
+  
+  @Deprecated('Use ApiConfig.forgotPassword instead')
+  static const String forgotPassword = ApiConfig.forgotPassword;
+  
+  @Deprecated('Use ApiConfig.resetPassword instead')
+  static const String resetPassword = ApiConfig.resetPassword;
+  
+  @Deprecated('Use ApiConfig.me instead')
+  static const String me = ApiConfig.me;
 
-  // Users
-  static const String users = '/users';
-  static const String updateMe = '/users/me';
-  static const String uploadAvatar = '/users/me/avatar';
-  static String userById(int id) => '/users/$id';
+  // User endpoints - delegates to ApiConfig
+  @Deprecated('Use ApiConfig.users instead')
+  static const String users = ApiConfig.users;
+  
+  @Deprecated('Use ApiConfig.updateMe instead')
+  static const String updateMe = ApiConfig.updateMe;
+  
+  @Deprecated('Use ApiConfig.uploadAvatar instead')
+  static const String uploadAvatar = ApiConfig.uploadAvatar;
+  
+  @Deprecated('Use ApiConfig.userById() instead')
+  static String userById(int id) => ApiConfig.userById(id);
 
-  // Static files
-  static const String uploads = '/uploads';
+  // Static files - delegates to ApiConfig
+  @Deprecated('Use ApiConfig.uploads instead')
+  static const String uploads = ApiConfig.uploads;
 }

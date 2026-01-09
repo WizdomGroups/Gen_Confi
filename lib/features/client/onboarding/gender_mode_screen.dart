@@ -201,7 +201,7 @@ class _GenderModeScreenState extends State<GenderModeScreen> {
                             );
                             AppNavigation.pushNamed(
                               context,
-                              AppRoutes.clientOnboardingGroomingProfile,
+                              AppRoutes.bodyTypeSelection,
                             );
                           },
                           isDisabled: !_canContinue,

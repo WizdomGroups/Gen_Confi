@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gen_confi/core/providers/auth_provider.dart';
+import 'package:gen_confi/core/storage/token_storage.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -25,6 +27,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _glowAnimation;
 
+  late AudioPlayer _audioPlayer;
+
   String _displayedText = "";
   final String _fullText = "GENCONFI";
   int _currentIndex = 0;
@@ -35,6 +39,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
+
+    _audioPlayer = AudioPlayer();
 
     // Main animation controller
     _mainController = AnimationController(
@@ -83,6 +89,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     if (!mounted) return;
 
+    // Play splash audio
+    try {
+      await _audioPlayer.play(AssetSource('audio/splash_audio.wav'));
+    } catch (e) {
+      debugPrint('Error playing splash audio: $e');
+    }
+
     // Start main animations
     _mainController.forward();
 
@@ -117,16 +130,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final role = authState.user!.role.toLowerCase();
       print('🔄 Auto-login successful: ${authState.user!.email} (Role: $role)');
 
+      // Check if onboarding is complete
+      final isOnboardingComplete = await TokenStorage.isOnboardingComplete();
+
       switch (role) {
         case 'admin':
           Navigator.pushReplacementNamed(context, AppRoutes.adminDashboard);
           break;
         case 'expert':
-          Navigator.pushReplacementNamed(context, AppRoutes.expertHome);
+          if (isOnboardingComplete) {
+            Navigator.pushReplacementNamed(context, AppRoutes.expertHome);
+          } else {
+            Navigator.pushReplacementNamed(context, AppRoutes.expertOnboarding);
+          }
           break;
         case 'client':
         default:
-          Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
+          if (isOnboardingComplete) {
+            Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
+          } else {
+            print('📋 Onboarding incomplete, redirecting to onboarding');
+            Navigator.pushReplacementNamed(context, AppRoutes.genderModeSelection);
+          }
           break;
       }
     } else {
@@ -141,6 +166,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _mainController.dispose();
     _particleController.dispose();
     _pulseController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
+import 'package:gen_confi/core/storage/token_storage.dart';
 import 'package:gen_confi/features/onboarding/widgets/chat_bubble.dart';
 import 'package:gen_confi/features/smart_capture/smart_capture_screen.dart';
 import 'package:gen_confi/services/auth_store.dart';
@@ -163,8 +164,9 @@ class _ChatOnboardingScreenState extends State<ChatOnboardingScreen> {
     await _addAiMessage("Perfect! I have everything I need.");
     await _addAiMessage("Building your personalized profile now...");
     
-    // Finalize
+    // Finalize - mark onboarding as complete
     AuthStore().markOnboardingCompleteForCurrentRole();
+    await TokenStorage.markOnboardingComplete();
     
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {

@@ -2,23 +2,28 @@ import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/providers/api_providers.dart';
+import '../../core/models/analysis_models.dart';
 import 'analysis_results_screen.dart';
 
-class AnalyzingFeaturesScreen extends StatefulWidget {
+class AnalyzingFeaturesScreen extends ConsumerStatefulWidget {
   final String imagePath;
+  final int? analysisId; // Optional analysis ID from API
 
   const AnalyzingFeaturesScreen({
     Key? key,
     required this.imagePath,
+    this.analysisId,
   }) : super(key: key);
 
   @override
-  State<AnalyzingFeaturesScreen> createState() => _AnalyzingFeaturesScreenState();
+  ConsumerState<AnalyzingFeaturesScreen> createState() => _AnalyzingFeaturesScreenState();
 }
 
-class _AnalyzingFeaturesScreenState extends State<AnalyzingFeaturesScreen>
+class _AnalyzingFeaturesScreenState extends ConsumerState<AnalyzingFeaturesScreen>
     with TickerProviderStateMixin {
   late AnimationController _progressController;
   late AnimationController _pulseController;
@@ -110,7 +115,7 @@ class _AnalyzingFeaturesScreenState extends State<AnalyzingFeaturesScreen>
     _startStepAnimation();
 
     // Navigate after completion
-    _progressController.addStatusListener((status) {
+    _progressController.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
         // Complete all steps
         setState(() {
@@ -118,13 +123,30 @@ class _AnalyzingFeaturesScreenState extends State<AnalyzingFeaturesScreen>
             step.completed = true;
           }
         });
+        
+        // Fetch analysis data if analysisId is provided
+        AnalysisResponse? analysisResponse;
+        if (widget.analysisId != null) {
+          try {
+            final analysisService = ref.read(analysisServiceProvider);
+            analysisResponse = await analysisService.getAnalysis(widget.analysisId!);
+            print('✅ Fetched analysis data: ID ${analysisResponse.id}');
+          } catch (e) {
+            print('❌ Error fetching analysis: $e');
+            // Continue with null - will use dummy data as fallback
+          }
+        }
+        
         // Navigate to results screen after a short delay
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (ctx) => AnalysisResultsScreen(imagePath: widget.imagePath),
+                builder: (ctx) => AnalysisResultsScreen(
+                  imagePath: widget.imagePath,
+                  analysisResponse: analysisResponse,
+                ),
               ),
             );
           }

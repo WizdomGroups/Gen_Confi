@@ -1,19 +1,25 @@
 import 'package:dio/dio.dart';
-import 'package:gen_confi/core/constants/api_constants.dart';
+import 'package:gen_confi/core/config/api_config.dart';
 import 'package:gen_confi/core/storage/token_storage.dart';
 
 class DioClient {
   late final Dio _dio;
 
   DioClient() {
-    final baseUrl = ApiConstants.baseUrl;
-    // print('🔧 [DioClient] Initializing with baseUrl: $baseUrl');
+    _initializeDio();
+  }
+
+  void _initializeDio() {
+    // Read baseUrl dynamically each time (not cached)
+    final baseUrl = ApiConfig.baseUrl;
+    ApiConfig.printConfig();
+    print('🔧 [DioClient] Initializing with baseUrl: $baseUrl');
 
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: ApiConstants.connectTimeout,
-        receiveTimeout: ApiConstants.receiveTimeout,
+        connectTimeout: ApiConfig.connectTimeout,
+        receiveTimeout: ApiConfig.receiveTimeout,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -24,11 +30,24 @@ class DioClient {
     _setupInterceptors();
   }
 
+  /// Update base URL dynamically (useful for testing or configuration changes)
+  void updateBaseUrl(String newBaseUrl) {
+    print('🔄 [DioClient] Updating baseUrl to: $newBaseUrl');
+    _dio.options.baseUrl = newBaseUrl;
+  }
+
   void _setupInterceptors() {
-    // Request interceptor - Add token to headers
+    // Request interceptor - Add token to headers and ensure baseUrl is current
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          // CRITICAL: Always use current baseUrl (in case it changed)
+          final currentBaseUrl = ApiConfig.baseUrl;
+          if (options.baseUrl != currentBaseUrl) {
+            print('🔄 [DioClient Interceptor] Updating baseUrl from ${options.baseUrl} to $currentBaseUrl');
+            options.baseUrl = currentBaseUrl;
+          }
+          
           // Get token from storage
           final token = await TokenStorage.getToken();
           if (token != null) {
@@ -70,6 +89,12 @@ class DioClient {
     Options? options,
   }) async {
     try {
+      // Ensure baseUrl is current (in case it changed)
+      final currentBaseUrl = ApiConfig.baseUrl;
+      if (_dio.options.baseUrl != currentBaseUrl) {
+        print('🔄 [DioClient] BaseUrl changed, updating from ${_dio.options.baseUrl} to $currentBaseUrl');
+        _dio.options.baseUrl = currentBaseUrl;
+      }
       return await _dio.get(
         path,
         queryParameters: queryParameters,
@@ -88,6 +113,21 @@ class DioClient {
     Options? options,
   }) async {
     try {
+      // ALWAYS use current baseUrl (don't rely on cached value)
+      final currentBaseUrl = ApiConfig.baseUrl;
+      if (_dio.options.baseUrl != currentBaseUrl) {
+        print('🔄 [DioClient] BaseUrl mismatch detected!');
+        print('   Old: ${_dio.options.baseUrl}');
+        print('   New: $currentBaseUrl');
+        print('   Updating...');
+        _dio.options.baseUrl = currentBaseUrl;
+      }
+      
+      // Debug: Print the full URL being used (verify it's correct)
+      final fullUrl = '${_dio.options.baseUrl}$path';
+      print('🌐 [DioClient] Making POST request to: $fullUrl');
+      print('   Current baseUrl from ApiConstants: $currentBaseUrl');
+      
       return await _dio.post(
         path,
         data: data,
@@ -107,6 +147,12 @@ class DioClient {
     Options? options,
   }) async {
     try {
+      // Ensure baseUrl is current (in case it changed)
+      final currentBaseUrl = ApiConfig.baseUrl;
+      if (_dio.options.baseUrl != currentBaseUrl) {
+        print('🔄 [DioClient] BaseUrl changed, updating from ${_dio.options.baseUrl} to $currentBaseUrl');
+        _dio.options.baseUrl = currentBaseUrl;
+      }
       return await _dio.put(
         path,
         data: data,
@@ -126,6 +172,12 @@ class DioClient {
     Options? options,
   }) async {
     try {
+      // Ensure baseUrl is current (in case it changed)
+      final currentBaseUrl = ApiConfig.baseUrl;
+      if (_dio.options.baseUrl != currentBaseUrl) {
+        print('🔄 [DioClient] BaseUrl changed, updating from ${_dio.options.baseUrl} to $currentBaseUrl');
+        _dio.options.baseUrl = currentBaseUrl;
+      }
       return await _dio.delete(
         path,
         data: data,
@@ -142,12 +194,21 @@ class DioClient {
     String errorMessage = 'An error occurred';
 
     // Print error details to terminal for easier debugging
-    print(
-      '❌ API Error: [${error.response?.statusCode}] ${error.requestOptions.path}',
-    );
+    final statusCode = error.response?.statusCode;
+    final fullUrl = '${error.requestOptions.baseUrl}${error.requestOptions.path}';
+    
+    print('');
+    print('❌ API Error: [${statusCode ?? "Connection Failed"}] ${error.requestOptions.path}');
+    print('   Full URL: $fullUrl');
+    print('   Error Type: ${error.type}');
+    print('   Error Message: ${error.message ?? "No message"}');
+    if (error.error != null) {
+      print('   Dio Error: ${error.error}');
+    }
     if (error.response?.data != null) {
       print('   Response Data: ${error.response?.data}');
     }
+    print('');
 
     switch (error.type) {
       case DioExceptionType.connectionTimeout:

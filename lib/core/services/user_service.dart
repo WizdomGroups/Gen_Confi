@@ -1,5 +1,5 @@
 import 'package:gen_confi/core/api/dio_client.dart';
-import 'package:gen_confi/core/constants/api_constants.dart';
+import 'package:gen_confi/core/config/api_config.dart';
 import 'package:gen_confi/core/models/user_model.dart';
 
 class UserService {
@@ -14,7 +14,7 @@ class UserService {
   }) async {
     try {
       final response = await _dioClient.get(
-        ApiConstants.users,
+        ApiConfig.users,
         queryParameters: {
           'skip': skip,
           'limit': limit,
@@ -31,7 +31,7 @@ class UserService {
   /// Get user by ID
   Future<UserModel> getUserById(int id) async {
     try {
-      final response = await _dioClient.get(ApiConstants.userById(id));
+      final response = await _dioClient.get(ApiConfig.userById(id));
       return UserModel.fromJson(response.data);
     } catch (e) {
       rethrow;
@@ -42,7 +42,7 @@ class UserService {
   Future<UserModel> updateUser(int id, Map<String, dynamic> data) async {
     try {
       final response = await _dioClient.put(
-        ApiConstants.userById(id),
+        ApiConfig.userById(id),
         data: data,
       );
       return UserModel.fromJson(response.data);
@@ -54,7 +54,7 @@ class UserService {
   /// Delete user
   Future<void> deleteUser(int id) async {
     try {
-      await _dioClient.delete(ApiConstants.userById(id));
+      await _dioClient.delete(ApiConfig.userById(id));
     } catch (e) {
       rethrow;
     }

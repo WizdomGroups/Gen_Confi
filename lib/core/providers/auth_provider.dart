@@ -133,6 +133,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
+      // Check for dummy credentials first
+      if (email.toLowerCase() == 'user@example.com' && password == 'User') {
+        // Create dummy user for testing
+        final dummyUser = UserModel(
+          id: 1,
+          email: 'user@example.com',
+          name: 'Test User',
+          phone: '1234567890',
+          role: 'client',
+          avatarUrl: null,
+          gender: 'male',
+        );
+
+        // Save to token storage for persistence
+        await TokenStorage.saveToken('dummy_token_for_testing');
+        await TokenStorage.saveUser(jsonEncode(dummyUser.toJson()));
+        await TokenStorage.markOnboardingComplete();
+
+        // Sync legacy AuthStore
+        AuthStore().signup(dummyUser.email, "", _mapRole(dummyUser.role));
+        AuthStore().markOnboardingCompleteForCurrentRole();
+
+        state = state.copyWith(
+          isAuthenticated: true,
+          user: dummyUser,
+          isLoading: false,
+        );
+
+        print('✅ Dummy login successful: ${dummyUser.email}');
+        return true;
+      }
+
+      // Regular API login
       final response = await _authService.login(email, password);
 
       // Sync legacy AuthStore

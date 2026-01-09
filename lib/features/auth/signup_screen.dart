@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/providers/auth_provider.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
+import 'package:gen_confi/core/storage/token_storage.dart';
 
 class PremiumSignupScreen extends ConsumerStatefulWidget {
   const PremiumSignupScreen({super.key});
@@ -501,28 +502,26 @@ class _PremiumSignupScreenState extends ConsumerState<PremiumSignupScreen> {
       // Get user from provider
       final user = ref.read(currentUserProvider);
 
-      // Navigate directly to home based on user role (skip role selection)
       if (user != null) {
-        print('🚀 Signup successful. Navigating to ${user.role} home');
+        print('🚀 Signup successful. User: ${user.email}, Role: ${user.role}');
+        
+        // Navigate directly to home screen based on role
         switch (user.role.toLowerCase()) {
-          case 'client':
-            Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
+          case 'admin':
+            Navigator.pushReplacementNamed(context, AppRoutes.adminDashboard);
             break;
           case 'expert':
             Navigator.pushReplacementNamed(context, AppRoutes.expertHome);
             break;
-          case 'admin':
-            Navigator.pushReplacementNamed(context, AppRoutes.adminDashboard);
-            break;
+          case 'client':
           default:
-            // Default to client shell if role is unknown
+            // Navigate to client home (shell with tabs)
             Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
+            break;
         }
       } else {
-        // Fallback to client shell if user data not available
-        print(
-          '⚠️ User data unavailable after signup, defaulting to client shell',
-        );
+        // Fallback: navigate to client home if user data not available
+        print('⚠️ User data unavailable after signup, navigating to client home');
         Navigator.pushReplacementNamed(context, AppRoutes.clientShell);
       }
     } else {

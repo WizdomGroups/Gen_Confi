@@ -4,6 +4,7 @@ import 'package:gen_confi/app/routes/app_routes.dart';
 import 'package:gen_confi/core/constants/app_colors.dart';
 import 'package:gen_confi/core/constants/app_spacing.dart';
 import 'package:gen_confi/core/layout/base_scaffold.dart';
+import 'package:gen_confi/core/storage/token_storage.dart';
 import 'package:gen_confi/core/widgets/app_button.dart';
 import 'package:gen_confi/services/onboarding_store.dart';
 
@@ -112,8 +113,11 @@ class FinishScreen extends StatelessWidget {
                 width: double.infinity,
                 child: AppButton(
                   text: 'Go to Home',
-                  onPressed: () {
+                  onPressed: () async {
+                    // Mark onboarding as complete in both stores
                     AuthStore().markOnboardingCompleteForCurrentRole();
+                    await TokenStorage.markOnboardingComplete();
+                    
                     Navigator.pushNamedAndRemoveUntil(
                       context,
                       AppRoutes.clientShell,

@@ -108,7 +108,7 @@ class _GroomingProfileScreenState extends State<GroomingProfileScreen> {
         skinGoal: _skinGoal,
       ),
     );
-    Navigator.pushNamed(context, AppRoutes.clientOnboardingFinish);
+    Navigator.pushNamed(context, AppRoutes.onboardingSelfie);
   }
 
   void _handleSkip() {
@@ -124,7 +124,7 @@ class _GroomingProfileScreenState extends State<GroomingProfileScreen> {
         skinGoal: 'Glow',
       ),
     );
-    Navigator.pushNamed(context, AppRoutes.clientOnboardingFinish);
+    Navigator.pushNamed(context, AppRoutes.onboardingSelfie);
   }
 
   bool get _canContinue {
